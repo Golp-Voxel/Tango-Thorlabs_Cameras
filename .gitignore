@@ -1,3 +1,5 @@
+*.tif
+*.png
 /Native_64_lib
 /tango-env
 /thorlabs_tsi_sdk
