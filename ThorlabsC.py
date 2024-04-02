@@ -1,3 +1,15 @@
+'''
+Cameras: 
+    Set-up gain                                             Done
+    Set-up the exposure time                                Done
+    Acquire a frame                                         Done
+    Set binning                                             ????
+    Set ROI                                                 Done
+
+
+'''
+
+
 import pylablib as pll
 pll.par["devices/dlls/thorlabs_tlcam"] = "C://Users//User//Desktop//Golpe_Voxel//Intromentos//Thorlabs//Native_64_lib"
 from pylablib.devices import Thorlabs
@@ -75,31 +87,31 @@ class ThorlabsC(Device):
         self.CAMARA.disarm()
         return 
 
-    current = attribute(
-        label="Current",
-        dtype=float,
-        display_level=DispLevel.EXPERT,
-        access=AttrWriteType.READ_WRITE,
-        unit="A",
-        format="8.4f",
-        min_value=0.0,
-        max_value=8.5,
-        min_alarm=0.1,
-        max_alarm=8.4,
-        min_warning=0.5,
-        max_warning=8.0,
-        fget="get_current",
-        fset="set_current",
-        doc="the power supply current",
-    )
+    # current = attribute(
+    #     label="Current",
+    #     dtype=float,
+    #     display_level=DispLevel.EXPERT,
+    #     access=AttrWriteType.READ_WRITE,
+    #     unit="A",
+    #     format="8.4f",
+    #     min_value=0.0,
+    #     max_value=8.5,
+    #     min_alarm=0.1,
+    #     max_alarm=8.4,
+    #     min_warning=0.5,
+    #     max_warning=8.0,
+    #     fget="get_current",
+    #     fset="set_current",
+    #     doc="the power supply current",
+    # )
 
-    noise = attribute(
-        label="Noise",
-        dtype=((float,),),
-        max_dim_x=1450,
-        max_dim_y=1450,
-        fget="get_noise",
-    )
+    # noise = attribute(
+    #     label="Noise",
+    #     dtype=((float,),),
+    #     max_dim_x=1450,
+    #     max_dim_y=1450,
+    #     fget="get_noise",
+    # )
 
     Image_foto = attribute(
         label="Image Thorlabs",
@@ -110,21 +122,21 @@ class ThorlabsC(Device):
         fget="get_image",
     )
 
-    @attribute
-    def voltage(self):
-        return 10.0
+    # @attribute
+    # def voltage(self):
+    #     return 10.0
 
-    def get_current(self):
-        return self._my_current
+    # def get_current(self):
+    #     return self._my_current
 
-    def set_current(self, current):
-        print("Current set to %f" % current)
-        self._my_current = current
+    # def set_current(self, current):
+    #     print("Current set to %f" % current)
+    #     self._my_current = current
 
-    def get_noise(self):
-        a = np.random.random_sample((1100, 1100))
-        print(type(a))
-        return a
+    # def get_noise(self):
+    #     a = np.random.random_sample((1100, 1100))
+    #     print(type(a))
+    #     return a
     
     def get_image(self):
         NUM_FRAMES = 1  # adjust to the desired number of frames     
@@ -148,6 +160,35 @@ class ThorlabsC(Device):
         #print(image_buffer_copy.shape)
         return image_buffer_copy
     
+    @command(dtype_out=str)
+    def list_cameras(self):
+        available_cameras = self.sdk.discover_available_cameras()
+        print_cam = ""
+        if len(available_cameras) < 1:
+            return "no cameras detected"
+        else:
+            for i in available_cameras:
+                print_cam += i
+            return print_cam
+
+    @command(dtype_in=(int,), dtype_out=str)
+    def set_roi(self,parameter):
+        self.CAMARA.disarm()
+        self.CAMARA.roi = (parameter[0], parameter[1], parameter[2], parameter[3])
+        self.CAMARA.arm(2)
+        return "CAMARA "+ " was set roi to "+ str(parameter[0]) +"\n"
+    
+
+    @command(dtype_in=float, dtype_out=str)
+    def set_gain(self,gain):
+        if self.CAMARA.gain_range.max > 0:
+            # db_gain = 6.0
+            gain_index = self.CAMARA.convert_decibels_to_gain(gain)
+            self.CAMARA.gain = gain_index
+
+        return f"Set camera gain to {self.CAMARA.convert_gain_to_decibels(self.CAMARA.gain)}"
+
+
     @command(dtype_in=int, dtype_out=str)
     def set_expousure_time_us(self,parameter):
         self.CAMARA.exposure_time_us = parameter  # set exposure to 1.1 ms
@@ -163,7 +204,7 @@ class ThorlabsC(Device):
         self.CAMARA.image_poll_timeout_ms = parameter  # 1 second polling timeout
         return "CAMARA "+ " was set image poll timeout "+ str(parameter) +" ms\n"
 
-
+    # This command saves a image on the local PC where the driver is installed 
     @command(dtype_in=str, dtype_out=str)    
     def get_foto(self, name):        
         image_array = self.get_image()
