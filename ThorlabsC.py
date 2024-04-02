@@ -147,49 +147,39 @@ class ThorlabsC(Device):
                 break
         #print(image_buffer_copy.shape)
         return image_buffer_copy
+    
+    @command(dtype_in=int, dtype_out=str)
+    def set_expousure_time_us(self,parameter):
+        self.CAMARA.exposure_time_us = parameter  # set exposure to 1.1 ms
+        return "CAMARA "+ " was set exposure time "+ str(parameter) +" us\n"
+            
+    @command(dtype_in=int, dtype_out=str)      
+    def set_frames_per_trigger_zero_for_unlimited(self,parameter):
+        self.CAMARA.frames_per_trigger_zero_for_unlimited = parameter  # start camera in continuous mode
+        return "CAMARA "+ " was set frames per trigger zero or unlimited "+ str(parameter) +"\n"
+        
+    @command(dtype_in=int, dtype_out=str)       
+    def set_image_poll_timeout_ms(self,parameter):
+        self.CAMARA.image_poll_timeout_ms = parameter  # 1 second polling timeout
+        return "CAMARA "+ " was set image poll timeout "+ str(parameter) +" ms\n"
+
 
     @command(dtype_in=str, dtype_out=str)    
     def get_foto(self, name):        
-        self.CAMARA.issue_software_trigger()
-
-        frame = self.CAMARA.get_pending_frame_or_null()
-        if frame is not None:
-            print("frame #{} received!".format(frame.frame_count))
-            frame.image_buffer
-            image_buffer_copy = np.copy(frame.image_buffer)
-            numpy_shaped_image = image_buffer_copy.reshape(self.CAMARA.image_height_pixels, self.CAMARA.image_width_pixels)
-            nd_image_array = np.full((self.CAMARA.image_height_pixels, self.CAMARA.image_width_pixels, 3), 0, dtype=np.uint8)
-            nd_image_array[:,:,0] = numpy_shaped_image
-            nd_image_array[:,:,1] = numpy_shaped_image
-            nd_image_array[:,:,2] = numpy_shaped_image
-            if name == "":
-                filename="tango_works.jpg"
-            else:
-                filename=name
-            cv2.imwrite(filename,nd_image_array)
-            #cv2.imshow("Image From TSI Cam", nd_image_array)
+        image_array = self.get_image()
+        if name == "":
+            filename="tango_works.jpg"
         else:
-            print("Unable to acquire image, program exiting...")
-            exit()
-            
+            filename=name
+        cv2.imwrite(filename,image_array)
+        #cv2.imshow("Image From TSI Cam", nd_image_array)            
         cv2.waitKey(0)
         return filename+" was taken"
         
     @command(dtype_out=str)    
     def get_foto_JSON(self):
 
-        self.CAMARA.issue_software_trigger()
-
-        frame = self.CAMARA.get_pending_frame_or_null()
-        if frame is not None:
-            print("frame #{} received!".format(frame.frame_count))
-            frame.image_buffer
-            image_buffer_copy = np.array(frame.image_buffer,dtype = np.uint8)
-            
-            send_JSON = {"Image":image_buffer_copy.tolist()}
-        else:
-            print("Unable to acquire image, program exiting...")
-            exit()
+        send_JSON = {"Image":self.get_image().tolist()}
             
         return json.dumps(send_JSON)
    
