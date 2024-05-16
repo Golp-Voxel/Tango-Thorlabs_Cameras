@@ -1,1 +1,1 @@
-# Thorlabs Cam (Tango Device)
+# Thorlabs Cam - Tango Device Server
