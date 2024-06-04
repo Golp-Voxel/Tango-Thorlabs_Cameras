@@ -11,7 +11,6 @@ Cameras:
 
 
 import pylablib as pll
-pll.par["devices/dlls/thorlabs_tlcam"] = "C://Users//User//Desktop//Golpe_Voxel//Intromentos//Thorlabs//Native_64_lib"
 from pylablib.devices import Thorlabs
 Thorlabs.list_cameras_tlcam()
 import numpy as np
@@ -20,11 +19,15 @@ import cv2
 from thorlabs_tsi_sdk.tl_camera import TLCameraSDK, OPERATION_MODE
 import json
 
+import configparser
+
 import tango
 from tango import AttrQuality, AttrWriteType, DevState, DispLevel, AttReqType, Database
 from tango.server import Device, attribute, command
 from tango.server import class_property, device_property
 
+
+# _____________ Check if this is need to work _____________
 db = Database()
 try:
    prop = db.get_property('ORBendPoint', 'Pool/' + instance_name)
@@ -32,6 +35,14 @@ try:
    os.environ["ORBendPoint"] = orb_end_point
 except:
    pass
+
+# _________________________________________________________
+config_info = configparser.ConfigParser()
+config_info.read('setting.ini')
+
+
+pll.par["devices/dlls/thorlabs_tlcam"] = str(config_info['DEFAULT']['DLL'])
+
 
 class ThorlabsC(Device):
     _my_current = 2.3456
