@@ -45,10 +45,6 @@ pll.par["devices/dlls/thorlabs_tlcam"] = str(config_info['DEFAULT']['DLL'])
 
 
 class ThorlabsC(Device):
-    _my_current = 2.3456
-    _my_range = 0.0
-    _my_compliance = 0.0
-    _output_on = False
     _available_cameras = ""
     CAMARA = None
     sdk =  TLCameraSDK()
@@ -94,60 +90,20 @@ class ThorlabsC(Device):
             self.CAMARA.arm(2)
             self.set_status("Thorlabs Camara Driver is ON")
 
-    def __del__(self):
+    def delete_device(self):
         self.CAMARA.disarm()
         return 
 
-    # current = attribute(
-    #     label="Current",
-    #     dtype=float,
-    #     display_level=DispLevel.EXPERT,
-    #     access=AttrWriteType.READ_WRITE,
-    #     unit="A",
-    #     format="8.4f",
-    #     min_value=0.0,
-    #     max_value=8.5,
-    #     min_alarm=0.1,
-    #     max_alarm=8.4,
-    #     min_warning=0.5,
-    #     max_warning=8.0,
-    #     fget="get_current",
-    #     fset="set_current",
-    #     doc="the power supply current",
-    # )
 
-    # noise = attribute(
-    #     label="Noise",
-    #     dtype=((float,),),
-    #     max_dim_x=1450,
-    #     max_dim_y=1450,
-    #     fget="get_noise",
-    # )
 
     Image_foto = attribute(
         label="Image Thorlabs",
         dtype=((int,),),
-        #data_format = tango.AttrDataFormat.IMAGE,
         max_dim_x=1440,
         max_dim_y=1440,
         fget="get_image",
     )
 
-    # @attribute
-    # def voltage(self):
-    #     return 10.0
-
-    # def get_current(self):
-    #     return self._my_current
-
-    # def set_current(self, current):
-    #     print("Current set to %f" % current)
-    #     self._my_current = current
-
-    # def get_noise(self):
-    #     a = np.random.random_sample((1100, 1100))
-    #     print(type(a))
-    #     return a
     
     def get_image(self):
         NUM_FRAMES = 1  # adjust to the desired number of frames     
@@ -172,7 +128,7 @@ class ThorlabsC(Device):
         return image_buffer_copy
     
     @command(dtype_out=str)
-    def list_cameras(self):
+    def ListCameras(self):
         available_cameras = self.sdk.discover_available_cameras()
         print_cam = ""
         if len(available_cameras) < 1:
@@ -183,7 +139,7 @@ class ThorlabsC(Device):
             return print_cam
 
     @command(dtype_in=(int,), dtype_out=str)
-    def set_roi(self,parameter):
+    def SetRoi(self,parameter):
         self.CAMARA.disarm()
         self.CAMARA.roi = (parameter[0], parameter[1], parameter[2], parameter[3])
         self.CAMARA.arm(2)
@@ -191,7 +147,7 @@ class ThorlabsC(Device):
     
 
     @command(dtype_in=float, dtype_out=str)
-    def set_gain(self,gain):
+    def SetGain(self,gain):
         if self.CAMARA.gain_range.max > 0:
             # db_gain = 6.0
             gain_index = self.CAMARA.convert_decibels_to_gain(gain)
@@ -201,23 +157,23 @@ class ThorlabsC(Device):
 
 
     @command(dtype_in=int, dtype_out=str)
-    def set_expousure_time_us(self,parameter):
+    def SetExpousureTimeUS(self,parameter):
         self.CAMARA.exposure_time_us = parameter  # set exposure to 1.1 ms
         return "CAMARA "+ " was set exposure time "+ str(parameter) +" us\n"
             
     @command(dtype_in=int, dtype_out=str)      
-    def set_frames_per_trigger_zero_for_unlimited(self,parameter):
+    def SetFramesPerTriggerZeroForUnlimited(self,parameter):
         self.CAMARA.frames_per_trigger_zero_for_unlimited = parameter  # start camera in continuous mode
         return "CAMARA "+ " was set frames per trigger zero or unlimited "+ str(parameter) +"\n"
         
     @command(dtype_in=int, dtype_out=str)       
-    def set_image_poll_timeout_ms(self,parameter):
+    def SetImagePollTimeoutMS(self,parameter):
         self.CAMARA.image_poll_timeout_ms = parameter  # 1 second polling timeout
         return "CAMARA "+ " was set image poll timeout "+ str(parameter) +" ms\n"
 
     # This command saves a image on the local PC where the driver is installed 
     @command(dtype_in=str, dtype_out=str)    
-    def get_foto(self, name):        
+    def GetLocalPhoto(self, name):        
         image_array = self.get_image()
         if name == "":
             filename="tango_works.jpg"
@@ -229,16 +185,13 @@ class ThorlabsC(Device):
         return filename+" was taken"
         
     @command(dtype_out=str)    
-    def get_foto_JSON(self):
+    def GetPhotoJSON(self):
 
         send_JSON = {"Image":self.get_image().tolist()}
             
         return json.dumps(send_JSON)
    
-    @command(dtype_in=bool, dtype_out=bool)
-    def output_on_off(self, on_off):
-        self._output_on = on_off
-        return self._output_on
+
         
 if __name__ == "__main__":
     ThorlabsC.run_server()
