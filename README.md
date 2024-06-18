@@ -31,6 +31,34 @@ Then copy the `setting.ini` template and fill in the path to the dlls for the Th
 ListCameras()
 ```
 
+``` python
+SetRoi(parameterArray)
+```
+
+``` python
+SetGain(gain)
+```
+
+``` python
+SetExpousureTimeUS(timeUS)
+```
+
+``` python
+SetFramesPerTriggerZeroForUnlimited(gain)
+```
+
+``` python
+SetImagePollTimeoutMS(imagePollTimeout)
+```
+
+``` python
+GetLocalPhoto(photoName)
+```
+
+``` python
+GetPhotoJSON()
+```
+
 ## Exemple of Tango Client code to take a photo
 ```python
 import tango
