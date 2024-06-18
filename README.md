@@ -27,6 +27,9 @@ Then copy the `setting.ini` template and fill in the path to the dlls for the Th
 
 ## Available commands
 
+``` python
+ListCameras()
+```
 
 ## Exemple of Tango Client code to take a photo
 ```python
