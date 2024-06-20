@@ -30,6 +30,21 @@ Then copy the `setting.ini` template and fill in the path to the dlls for the Th
 ``` python
 ListCameras()
 ```
+This command will list all the Cameras connected to the PC.
+
+```python
+ConnectCamera(infoCamera)
+```
+To connect a Camera the user need to send a string with the following information:
+```
+{
+    "Cam":<listCameras info>,
+    "CamName":<user choice>,
+    "exposure_us":1100,
+    "frames_per_trigger":0,
+    "poll_timeout_ms":500,
+}
+```
 
 ``` python
 SetRoi(parameterArray)
@@ -44,7 +59,7 @@ SetExpousureTimeUS(timeUS)
 ```
 
 ``` python
-SetFramesPerTriggerZeroForUnlimited(gain)
+SetFramesPerTriggerZeroForUnlimited(continuousMode)
 ```
 
 ``` python
@@ -57,6 +72,12 @@ GetLocalPhoto(photoName)
 
 ``` python
 GetPhotoJSON()
+```
+
+## Avaible Attributes
+
+```
+Image_Photo
 ```
 
 ## Exemple of Tango Client code to take a photo

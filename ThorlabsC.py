@@ -124,7 +124,7 @@ class ThorlabsC(Device):
     #     fget="get_noise",
     # )
 
-    Image_foto = attribute(
+    Image_Photo = attribute(
         label="Image Thorlabs",
         dtype=((int,),),
         #data_format = tango.AttrDataFormat.IMAGE,
@@ -172,7 +172,7 @@ class ThorlabsC(Device):
         return image_buffer_copy
     
     @command(dtype_out=str)
-    def list_cameras(self):
+    def ListCameras(self):
         available_cameras = self.sdk.discover_available_cameras()
         print_cam = ""
         if len(available_cameras) < 1:
@@ -180,18 +180,42 @@ class ThorlabsC(Device):
         else:
             for i in available_cameras:
                 print_cam += i
-            return print_cam
+                print_cam += ", "
+            return print_cam[0:-2]
+        
+    # The user will pass a string that is going to be converted to a JSON 
+    # with the Camera that they want to connect and the name they want to call it.
+    # It is also possible to send the expousure time, etc if none give it is set with deafault valeus.
+    @command(dtype_in=str,dtype_out=str)  
+    def ConnectCamera(self,infoCamera):
+        Info =  json.loads(infoCamera)
+        available_cameras = self.sdk.discover_available_cameras()
+        if len(available_cameras) < 1:
+            self.info_stream("no cameras detected")
+        else:
+            if Info["Cam"] in available_cameras:
+                self.info_stream("A camera detected")
+                self.CAMARA[Info["CamName"]] = self.sdk.open_camera(Info["Cam"])  
+                try:
+                    # Check if te camera is disarmend
+                    self.CAMARA.disarm()
+                except:
+                    print("All good")
+                self.CAMARA[Info["CamName"]].exposure_time_us = 1100  # set exposure to 1.1 ms
+                self.CAMARA[Info["CamName"]].frames_per_trigger_zero_for_unlimited = 0  # start camera in continuous mode
+                self.CAMARA[Info["CamName"]].image_poll_timeout_ms = 500  # 1 second polling timeout
+                #old_roi = CAMARA.roi  # store the current roi
 
     @command(dtype_in=(int,), dtype_out=str)
-    def set_roi(self,parameter):
+    def SetRoi(self,ROI):
         self.CAMARA.disarm()
-        self.CAMARA.roi = (parameter[0], parameter[1], parameter[2], parameter[3])
+        self.CAMARA.roi = (ROI[0], ROI[1], ROI[2], ROI[3])
         self.CAMARA.arm(2)
-        return "CAMARA "+ " was set roi to "+ str(parameter[0]) +"\n"
+        return "CAMARA "+ " was set roi to "+ str(ROI[0])+", "+str(ROI[1])+", "+str(ROI[2])+", "+str(ROI[3]) +"\n"
     
 
     @command(dtype_in=float, dtype_out=str)
-    def set_gain(self,gain):
+    def SetGain(self,gain):
         if self.CAMARA.gain_range.max > 0:
             # db_gain = 6.0
             gain_index = self.CAMARA.convert_decibels_to_gain(gain)
@@ -201,44 +225,40 @@ class ThorlabsC(Device):
 
 
     @command(dtype_in=int, dtype_out=str)
-    def set_expousure_time_us(self,parameter):
+    def SetExpousureTimeUS(self,parameter):
         self.CAMARA.exposure_time_us = parameter  # set exposure to 1.1 ms
         return "CAMARA "+ " was set exposure time "+ str(parameter) +" us\n"
             
     @command(dtype_in=int, dtype_out=str)      
-    def set_frames_per_trigger_zero_for_unlimited(self,parameter):
-        self.CAMARA.frames_per_trigger_zero_for_unlimited = parameter  # start camera in continuous mode
-        return "CAMARA "+ " was set frames per trigger zero or unlimited "+ str(parameter) +"\n"
+    def SetFramesPerTriggerZeroForUnlimited(self,continuousMode):
+        self.CAMARA.frames_per_trigger_zero_for_unlimited = continuousMode  # start camera in continuous mode
+        return "CAMARA "+ " was set frames per trigger zero or unlimited "+ str(continuousMode) +"\n"
         
     @command(dtype_in=int, dtype_out=str)       
-    def set_image_poll_timeout_ms(self,parameter):
-        self.CAMARA.image_poll_timeout_ms = parameter  # 1 second polling timeout
-        return "CAMARA "+ " was set image poll timeout "+ str(parameter) +" ms\n"
+    def SetImagePollTimeoutMS(self,imagePollTimeout):
+        self.CAMARA.image_poll_timeout_ms = imagePollTimeout  # 1 second polling timeout
+        return "CAMARA "+ " was set image poll timeout "+ str(imagePollTimeout) +" ms\n"
 
     # This command saves a image on the local PC where the driver is installed 
     @command(dtype_in=str, dtype_out=str)    
-    def get_foto(self, name):        
+    def GetLocalPhoto(self, photoName):        
         image_array = self.get_image()
-        if name == "":
+        if photoName == "":
             filename="tango_works.jpg"
         else:
-            filename=name
+            filename=photoName
         cv2.imwrite(filename,image_array)
         #cv2.imshow("Image From TSI Cam", nd_image_array)            
         cv2.waitKey(0)
         return filename+" was taken"
         
     @command(dtype_out=str)    
-    def get_foto_JSON(self):
+    def GetPhotoJSON(self):
 
         send_JSON = {"Image":self.get_image().tolist()}
             
         return json.dumps(send_JSON)
    
-    @command(dtype_in=bool, dtype_out=bool)
-    def output_on_off(self, on_off):
-        self._output_on = on_off
-        return self._output_on
         
 if __name__ == "__main__":
     ThorlabsC.run_server()
