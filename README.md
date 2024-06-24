@@ -33,7 +33,7 @@ Then copy the `setting.ini` template and fill in the path to the dlls for the Th
 - [SetExpousureTimeUS](#SetExpousureTimeUS)
 - [SetFramesPerTriggerZeroForUnlimited](#SetFramesPerTriggerZeroForUnlimited)
 - [SetImagePollTimeoutMS](#SetImagePollTimeoutMS)
-- [GetPhotoJSON](###GetPhotoJSON)
+- [GetPhotoJSON](#GetPhotoJSON)
 
 ### ListCameras
 
