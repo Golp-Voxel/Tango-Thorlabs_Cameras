@@ -118,6 +118,7 @@ GetPhotoJSON(CamName)
 ## Exemple of Tango Client code to take a photo
 ```python
 import tango
+import json
 import matplotlib.pyplot as plt
 Thorlabs_Camera = tango.DeviceProxy(<Thorlabs_Tango_location_on_the_database>)
 print(Thorlabs_Camera.state())
@@ -125,9 +126,47 @@ print(Thorlabs_Camera.state())
 Thorlabs_Camera.set_timeout_millis(9000) 
 
 # This function returns a list with all the command aviable on the device server
-Thorlabs_Camera.get_command_list()
-#['list_cameras', 'set_roi', 'set_gain', 'set_image_poll_timeout_ms']
+camara_device.get_command_list()
+# Result = ['ConnectCamera', 'GetPhotoJSON', 'ListCameras', 'SetExpousureTimeUS', 'SetFramesPerTriggerZeroForUnlimited', 'SetGain', 'SetImagePollTimeoutMS', 'SetRoi']
 
-Image = Thorlabs_Camera.Image_foto
-plt.imshow(Image)
+# This function list all the cameras connected to the PC
+camara_device.ListCameras() 
+
+# Change the "Cam" to the ID that you want to connect to
+# The "CamName" can be change to any name that the user wants and this will be use to identify.
+JSON_CAM = {"Cam":"17946",
+            "CamName":"C1",
+            "exposure_us":1100,
+            "frames_per_trigger":0,
+            "poll_timeout_ms":500}
+
+string_cam = json.dumps(JSON_CAM)
+
+Thorlabs_Camera.ConnectCamera(string_cam)
+
+# Collect a Image from Camera "C1"
+J = camara_device.GetPhotoJSON("C1")
+nd_image_array = json.loads(J)
+
+array_p = np.array(nd_image_array["Image"])
+plt.imshow(array_p)
+
+
+#Change the ROI of the "C1"
+ROI_ = {"CamName":"C1",
+            "upper_left_x_pixels": 0,
+            "upper_left_y_pixels": 0,
+            "lower_right_x_pixels":1400, 
+            "lower_right_y_pixels":1400}
+
+string_roi = json.dumps(ROI_)
+# print(JSON_CAM)
+camara_device.SetRoi(string_roi)
+
+# Collect a Image from Camera "C1"
+J = camara_device.GetPhotoJSON("C1")
+nd_image_array = json.loads(J)
+
+array_p = np.array(nd_image_array["Image"])
+plt.imshow(array_p)
 ```
