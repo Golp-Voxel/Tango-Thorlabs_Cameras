@@ -16,7 +16,6 @@ pure-eval==0.2.2
 pyasn1==0.5.0
 pyasn1-modules==0.3.0
 pycparser==2.21
-pyft232==0.12
 Pygments==2.16.1
 PyJWT==2.8.0
 pylablib==1.4.2
