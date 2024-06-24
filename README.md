@@ -23,6 +23,11 @@ To complete the installation, it is necessary to copy the `ThorlabsC.bat` templa
 Then copy the `setting.ini` template and fill in the path to the dlls for the Thorlabs.
 
 
+If you get an error of the module `ftdxxx` it is solved by:
+```
+pip uninstall pyft232
+```
+
 
 
 ## Available commands
@@ -37,10 +42,12 @@ Then copy the `setting.ini` template and fill in the path to the dlls for the Th
 
 ### ListCameras
 
+This command will list all the Cameras connected to the PC.
 ``` python
 ListCameras()
 ```
-This command will list all the Cameras connected to the PC.
+
+Returning the ID of the camera such as: '17946'(`<listCameras info>`),
 
 ### ConnectCamera
 
@@ -60,6 +67,9 @@ To connect a Camera the user need to send a string with the following informatio
 
 ### SetRoi
 
+Region of Interest used by the camera. ROI is represented by two (x, y) coordinates that specify
+an upper left coordinate and a lower right coordinate.
+
 ``` python
 SetRoi(ROI)
 ```
@@ -75,6 +85,8 @@ ROI = {"CamName":<user choice>,
 
 ### SetGain
 
+Gain refers to the scaling of pixel values up or down for a given amount of light. This scaling is applied prior to digitization. The units of measure for Gain can vary by camera. Please consult the data sheet for the specific camera model.
+
 ``` python
 SetGain(gain)
 ```
@@ -86,11 +98,19 @@ ROI = {"CamName":<user choice>,
 
 ### SetExpousureTimeUS
 
+The time, in microseconds (us), that charge is integrated on the image sensor.
+To convert milliseconds to microseconds, multiply the milliseconds by 1,000. To convert microseconds to milliseconds, divide the microseconds by 1,000.
+
+IMPORTANT: After issuing a software trigger, it is recommended to wait at least 300ms before setting
+
 ``` python
 SetExpousureTimeUS(timeUS)
 ```
 
 ### SetFramesPerTriggerZeroForUnlimited
+
+
+The number of frames generated per software or hardware trigger can be unlimited or finite. If set to zero, the camera will self-trigger indefinitely, allowing a continuous video feed. If set to one or higher, a single software or hardware trigger will generate only the prescribed number of frames and then stop.
 
 ``` python
 SetFramesPerTriggerZeroForUnlimited(continuousMode)
@@ -98,16 +118,32 @@ SetFramesPerTriggerZeroForUnlimited(continuousMode)
 
 ### SetImagePollTimeoutMS
 
+If the SDK could not get an image within the timeout, None will be returned instead.
 
 ``` python
 SetImagePollTimeoutMS(imagePollTimeout)
 ```
 
 ### GetPhotoJSON
+Polls the camera for an image. This method will block for at most image_poll_timeout milliseconds.
+The Frame that is retrieved will have an image_buffer field to access the pixel data.
+
 
 ``` python
 GetPhotoJSON(CamName)
 ```
+
+CamName is a single string with the same name passed on the [ConnectCamera](#ConnectCamera) function.
+
+
+This function returns a JSON where the image will be in the key "Image", so to get the image you can use the following code:
+
+``` python
+nd_image_array = json.loads(GetPhotoJSON(CamName))
+array_p = np.array(nd_image_array["Image"])
+plt.imshow(array_p)
+```
+
 
 ## Avaible Attributes
 
@@ -170,3 +206,8 @@ nd_image_array = json.loads(J)
 array_p = np.array(nd_image_array["Image"])
 plt.imshow(array_p)
 ```
+
+
+# References
+
+- [ThorCam™ Software for Scientific and Compact USB Cameras](https://www.thorlabs.com/software_pages/ViewSoftwarePage.cfm?Code=ThorCam)
