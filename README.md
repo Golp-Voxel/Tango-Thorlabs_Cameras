@@ -26,11 +26,23 @@ Then copy the `setting.ini` template and fill in the path to the dlls for the Th
 
 
 ## Available commands
+- [ListCameras](#ListCameras)
+- [ConnectCamera](#ConnectCamera)
+- [SetRoi](#SetRoi)
+- [SetGain](#SetGain)
+- [SetExpousureTimeUS](#SetExpousureTimeUS)
+- [SetFramesPerTriggerZeroForUnlimited](#SetFramesPerTriggerZeroForUnlimited)
+- [SetImagePollTimeoutMS](#SetImagePollTimeoutMS)
+- [GetPhotoJSON](###GetPhotoJSON)
+
+### ListCameras
 
 ``` python
 ListCameras()
 ```
 This command will list all the Cameras connected to the PC.
+
+### ConnectCamera
 
 ```python
 ConnectCamera(infoCamera)
@@ -42,42 +54,65 @@ To connect a Camera the user need to send a string with the following informatio
     "CamName":<user choice>,
     "exposure_us":1100,
     "frames_per_trigger":0,
-    "poll_timeout_ms":500,
+    "poll_timeout_ms":500
 }
 ```
 
+### SetRoi
+
 ``` python
-SetRoi(parameterArray)
+SetRoi(ROI)
 ```
+
+```
+ROI = {"CamName":<user choice>,
+       "upper_left_x_pixels": 0,
+       "upper_left_y_pixels": 0,
+       "lower_right_x_pixels":1400, 
+       "lower_right_y_pixels":1400}
+```
+
+
+### SetGain
 
 ``` python
 SetGain(gain)
 ```
 
+```
+ROI = {"CamName":<user choice>,
+       "gain": 5.5}
+```
+
+### SetExpousureTimeUS
+
 ``` python
 SetExpousureTimeUS(timeUS)
 ```
+
+### SetFramesPerTriggerZeroForUnlimited
 
 ``` python
 SetFramesPerTriggerZeroForUnlimited(continuousMode)
 ```
 
+### SetImagePollTimeoutMS
+
+
 ``` python
 SetImagePollTimeoutMS(imagePollTimeout)
 ```
 
-``` python
-GetLocalPhoto(photoName)
-```
+### GetPhotoJSON
 
 ``` python
-GetPhotoJSON()
+GetPhotoJSON(CamName)
 ```
 
 ## Avaible Attributes
 
 ```
-Image_Photo
+'Cam_1', 'Cam_2', 'Cam_3', 'Cam_4'
 ```
 
 ## Exemple of Tango Client code to take a photo
