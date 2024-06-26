@@ -39,6 +39,7 @@ pip uninstall pyft232
 - [SetFramesPerTriggerZeroForUnlimited](#SetFramesPerTriggerZeroForUnlimited)
 - [SetImagePollTimeoutMS](#SetImagePollTimeoutMS)
 - [GetPhotoJSON](#GetPhotoJSON)
+- [DisconnectCam](#DisconnectCam)
 
 ### ListCameras
 
@@ -104,8 +105,14 @@ To convert milliseconds to microseconds, multiply the milliseconds by 1,000. To 
 IMPORTANT: After issuing a software trigger, it is recommended to wait at least 300ms before setting
 
 ``` python
-SetExpousureTimeUS(timeUS)
+SetExposureTimeUS(timeUS)
 ```
+
+```
+timeUS = {"CamName":<user choice>,
+       "exposure_time_us": 5.5}
+```
+
 
 ### SetFramesPerTriggerZeroForUnlimited
 
@@ -116,12 +123,23 @@ The number of frames generated per software or hardware trigger can be unlimited
 SetFramesPerTriggerZeroForUnlimited(continuousMode)
 ```
 
+```
+continuousMode = {"CamName":<user choice>,
+       "continuousMode": 0}
+```
+
 ### SetImagePollTimeoutMS
 
 If the SDK could not get an image within the timeout, None will be returned instead.
 
 ``` python
 SetImagePollTimeoutMS(imagePollTimeout)
+```
+
+
+```
+imagePollTimeout = {"CamName":<user choice>,
+       "imagePollTimeout": 500}
 ```
 
 ### GetPhotoJSON
@@ -143,13 +161,15 @@ nd_image_array = json.loads(GetPhotoJSON(CamName))
 array_p = np.array(nd_image_array["Image"])
 plt.imshow(array_p)
 ```
+### DisconnectCam
 
+Disconnects the Thorlabs Camera.
 
-## Avaible Attributes
-
+``` python
+DisconnectCam(CamName)
 ```
-'Cam_1', 'Cam_2', 'Cam_3', 'Cam_4'
-```
+CamName is a single string with the same name passed on the [ConnectCamera](#ConnectCamera) function.
+
 
 ## Exemple of Tango Client code to take a photo
 ```python

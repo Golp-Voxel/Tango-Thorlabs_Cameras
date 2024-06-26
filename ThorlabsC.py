@@ -379,14 +379,14 @@ class ThorlabsC(Device):
         gain =  json.loads(gain)
         if self.CAMS[gain["CamName"]]["Serial"].gain_range.max > 0:
             # db_gain = 6.0
-            gain_index = self.CAMS[gain["CamName"]]["Serial"].convert_decibels_to_gain(gain)
+            gain_index = self.CAMS[gain["CamName"]]["Serial"].convert_decibels_to_gain(gain["gain"])
             self.CAMS[gain["CamName"]]["Serial"].gain = gain_index
 
-        return f"Set camera gain to {self.CAMS.convert_gain_to_decibels(self.CAMS.gain)}"
+        return f"Set camera gain to {self.CAMS[gain["CamName"]]["Serial"].convert_gain_to_decibels(self.CAMS[gain["CamName"]]["Serial"].gain)}"
 
 
     @command(dtype_in=str, dtype_out=str)
-    def SetExpousureTimeUS(self,parameter):
+    def SetExposureTimeUS(self,parameter):
         parameter = json.loads(parameter)
         self.CAMS[parameter["CamName"]]["Serial"].exposure_time_us = parameter["exposure_time_us"]  # set exposure to 1.1 ms
         return "CAMS "+ " was set exposure time "+ str(parameter["exposure_time_us"]) +" us\n"
@@ -424,7 +424,14 @@ class ThorlabsC(Device):
             return json.dumps(send_JSON)
         else:
             return "No Camera with the name: " + Cam
-   
+    
+    @command(dtype_in=str, dtype_out=str)    
+    def DisconnectCam(self,Cam):
+        if Cam in self.CAMS:
+            self.CAMS[Cam]["Serial"].disarm()
+            return Cam + " was disconnected."
+        else:
+            return "No Camera with the name: " + Cam
         
 if __name__ == "__main__":
     ThorlabsC.run_server()
