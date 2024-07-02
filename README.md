@@ -182,11 +182,11 @@ print(Thorlabs_Camera.state())
 Thorlabs_Camera.set_timeout_millis(9000) 
 
 # This function returns a list with all the command aviable on the device server
-camara_device.get_command_list()
+Thorlabs_Camera.get_command_list()
 # Result = ['ConnectCamera', 'GetPhotoJSON', 'ListCameras', 'SetExpousureTimeUS', 'SetFramesPerTriggerZeroForUnlimited', 'SetGain', 'SetImagePollTimeoutMS', 'SetRoi']
 
 # This function list all the cameras connected to the PC
-camara_device.ListCameras() 
+Thorlabs_Camera.ListCameras() 
 
 # Change the "Cam" to the ID that you want to connect to
 # The "CamName" can be change to any name that the user wants and this will be use to identify.
@@ -201,7 +201,7 @@ string_cam = json.dumps(JSON_CAM)
 Thorlabs_Camera.ConnectCamera(string_cam)
 
 # Collect a Image from Camera "C1"
-J = camara_device.GetPhotoJSON("C1")
+J = Thorlabs_Camera.GetPhotoJSON("C1")
 nd_image_array = json.loads(J)
 
 array_p = np.array(nd_image_array["Image"])
@@ -217,10 +217,10 @@ ROI_ = {"CamName":"C1",
 
 string_roi = json.dumps(ROI_)
 # print(JSON_CAM)
-camara_device.SetRoi(string_roi)
+Thorlabs_Camera.SetRoi(string_roi)
 
 # Collect a Image from Camera "C1"
-J = camara_device.GetPhotoJSON("C1")
+J = Thorlabs_Camera.GetPhotoJSON("C1")
 nd_image_array = json.loads(J)
 
 array_p = np.array(nd_image_array["Image"])
