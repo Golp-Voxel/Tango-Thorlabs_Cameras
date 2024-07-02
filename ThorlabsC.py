@@ -27,16 +27,6 @@ from tango.server import Device, attribute, command
 from tango.server import class_property, device_property
 
 
-# _____________ Check if this is need to work _____________
-db = Database()
-try:
-   prop = db.get_property('ORBendPoint', 'Pool/' + instance_name)
-   orb_end_point = prop['Pool/' + instance_name][0]
-   os.environ["ORBendPoint"] = orb_end_point
-except:
-   pass
-
-# _________________________________________________________
 config_info = configparser.ConfigParser()
 config_info.read('setting.ini')
 
@@ -403,19 +393,7 @@ class ThorlabsC(Device):
         self.CAMS[imagePollTimeout["CamName"]]["Serial"].image_poll_timeout_ms = imagePollTimeout["imagePollTimeout"]  # 1 second polling timeout
         return "CAMS "+ " was set image poll timeout "+ str(imagePollTimeout["imagePollTimeout"]) +" ms\n"
 
-    # # This command saves a image on the local PC where the driver is installed 
-    # @command(dtype_in=str, dtype_out=str)    
-    # def GetLocalPhoto(self, photoName):        
-    #     image_array = self.get_image()
-    #     if photoName == "":
-    #         filename="tango_works.jpg"
-    #     else:
-    #         filename=photoName
-    #     cv2.imwrite(filename,image_array)
-    #     #cv2.imshow("Image From TSI Cam", nd_image_array)            
-    #     cv2.waitKey(0)
-    #     return filename+" was taken"
-        
+
     @command(dtype_in=str, dtype_out=str)    
     def GetPhotoJSON(self,Cam):
         if Cam in self.CAMS:
