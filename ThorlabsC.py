@@ -93,9 +93,9 @@ class ThorlabsC(Device):
 
 
     Cam_1 = attribute(
+
         label="Image Thorlabs",
         dtype=((int,),),
-        #data_format = tango.AttrDataFormat.IMAGE,
         max_dim_x=1440,
         max_dim_y=1440,
         fget="get_image_1",
@@ -136,6 +136,7 @@ class ThorlabsC(Device):
     #     NUM_FRAMES = 1  # adjust to the desired number of frames     
 
     #     self.CAMS.issue_software_trigger()
+
 
     #     for i in range(NUM_FRAMES):
     #         frame = self.CAMS.get_pending_frame_or_null()
@@ -198,6 +199,7 @@ class ThorlabsC(Device):
                 break
         #print(image_buffer_copy.shape)
         return image_buffer_copy
+
     
 
     def get_image_3(self):
@@ -277,6 +279,7 @@ class ThorlabsC(Device):
         else:
             for i in available_cameras:
                 print_cam += i
+
                 print_cam += ", "
             return print_cam[0:-2]
         
@@ -394,6 +397,7 @@ class ThorlabsC(Device):
         return "CAMS "+ " was set image poll timeout "+ str(imagePollTimeout["imagePollTimeout"]) +" ms\n"
 
 
+
     @command(dtype_in=str, dtype_out=str)    
     def GetPhotoJSON(self,Cam):
         if Cam in self.CAMS:
@@ -410,6 +414,8 @@ class ThorlabsC(Device):
             return Cam + " was disconnected."
         else:
             return "No Camera with the name: " + Cam
+
+
         
 if __name__ == "__main__":
     ThorlabsC.run_server()
