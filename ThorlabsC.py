@@ -28,16 +28,6 @@ from tango.server import Device, attribute, command
 from tango.server import class_property, device_property
 
 
-# _____________ Check if this is need to work _____________
-db = Database()
-try:
-   prop = db.get_property('ORBendPoint', 'Pool/' + instance_name)
-   orb_end_point = prop['Pool/' + instance_name][0]
-   os.environ["ORBendPoint"] = orb_end_point
-except:
-   pass
-
-# _________________________________________________________
 config_info = configparser.ConfigParser()
 config_info.read('setting.ini')
 
@@ -106,9 +96,9 @@ class ThorlabsC(Device):
 
 
     Cam_1 = attribute(
+
         label="Image Thorlabs",
         dtype=((int,),),
-        #data_format = tango.AttrDataFormat.IMAGE,
         max_dim_x=1440,
         max_dim_y=1440,
         fget="get_image_1",
@@ -149,6 +139,7 @@ class ThorlabsC(Device):
     #     NUM_FRAMES = 1  # adjust to the desired number of frames     
 
     #     self.CAMS.issue_software_trigger()
+
 
     #     for i in range(NUM_FRAMES):
     #         frame = self.CAMS.get_pending_frame_or_null()
@@ -211,6 +202,7 @@ class ThorlabsC(Device):
                 break
         #print(image_buffer_copy.shape)
         return image_buffer_copy
+
     
 
     def get_image_3(self):
@@ -291,6 +283,7 @@ class ThorlabsC(Device):
         else:
             for i in available_cameras:
                 print_cam += i
+
                 print_cam += ", "
             return print_cam[0:-2]
         
@@ -383,14 +376,14 @@ class ThorlabsC(Device):
         gain =  json.loads(gain)
         if self.CAMS[gain["CamName"]]["Serial"].gain_range.max > 0:
             # db_gain = 6.0
-            gain_index = self.CAMS[gain["CamName"]]["Serial"].convert_decibels_to_gain(gain)
+            gain_index = self.CAMS[gain["CamName"]]["Serial"].convert_decibels_to_gain(gain["gain"])
             self.CAMS[gain["CamName"]]["Serial"].gain = gain_index
 
-        return f"Set camera gain to {self.CAMS.convert_gain_to_decibels(self.CAMS.gain)}"
+        return f"Set camera gain to {self.CAMS[gain["CamName"]]["Serial"].convert_gain_to_decibels(self.CAMS[gain["CamName"]]["Serial"].gain)}"
 
 
     @command(dtype_in=str, dtype_out=str)
-    def SetExpousureTimeUS(self,parameter):
+    def SetExposureTimeUS(self,parameter):
         parameter = json.loads(parameter)
         self.CAMS[parameter["CamName"]]["Serial"].exposure_time_us = parameter["exposure_time_us"]  # set exposure to 1.1 ms
         return "CAMS "+ " was set exposure time "+ str(parameter["exposure_time_us"]) +" us\n"
@@ -407,19 +400,8 @@ class ThorlabsC(Device):
         self.CAMS[imagePollTimeout["CamName"]]["Serial"].image_poll_timeout_ms = imagePollTimeout["imagePollTimeout"]  # 1 second polling timeout
         return "CAMS "+ " was set image poll timeout "+ str(imagePollTimeout["imagePollTimeout"]) +" ms\n"
 
-    # # This command saves a image on the local PC where the driver is installed 
-    # @command(dtype_in=str, dtype_out=str)    
-    # def GetLocalPhoto(self, photoName):        
-    #     image_array = self.get_image()
-    #     if photoName == "":
-    #         filename="tango_works.jpg"
-    #     else:
-    #         filename=photoName
-    #     cv2.imwrite(filename,image_array)
-    #     #cv2.imshow("Image From TSI Cam", nd_image_array)            
-    #     cv2.waitKey(0)
-    #     return filename+" was taken"
-        
+
+
     @command(dtype_in=str, dtype_out=str)    
     def GetPhotoJSON(self,Cam):
         if Cam in self.CAMS:
@@ -428,7 +410,16 @@ class ThorlabsC(Device):
             return json.dumps(send_JSON)
         else:
             return "No Camera with the name: " + Cam
-   
+    
+    @command(dtype_in=str, dtype_out=str)    
+    def DisconnectCam(self,Cam):
+        if Cam in self.CAMS:
+            self.CAMS[Cam]["Serial"].disarm()
+            return Cam + " was disconnected."
+        else:
+            return "No Camera with the name: " + Cam
+
+
         
     @command(dtype_in=str, dtype_out=str)    
     def TakePhoto(self,Cam):
