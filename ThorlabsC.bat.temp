@@ -3,4 +3,4 @@ call "C:\ProgramData\anaconda3\condabin\activate.bat"
 
 cd C:\Users\Pedro\Desktop\Thorlabs_Test 
 
-python C:\Users\Pedro\Desktop\Thorlabs_Test\ThorlabsC.py 1 2>&1
+python C:\Users\Pedro\Desktop\Thorlabs_Test\ThorlabsC.py %* 2>&1

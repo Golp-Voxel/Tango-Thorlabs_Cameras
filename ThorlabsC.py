@@ -29,9 +29,25 @@ from tango import AttrQuality, DispLevel, DevState
 from tango import AttrWriteType, PipeWriteType
 # Additional import
 # PROTECTED REGION ID(ThorlabsC.additionnal_import) ENABLED START #
+
+import pylablib as pll
+from pylablib.devices import Thorlabs
+Thorlabs.list_cameras_tlcam()
 import numpy as np
+import os
+from thorlabs_tsi_sdk.tl_camera import TLCameraSDK, OPERATION_MODE
+
 import time
 from threading import Thread
+import configparser
+config_info = configparser.ConfigParser()
+config_info.read('setting.ini')
+
+
+pll.par["devices/dlls/thorlabs_tlcam"] = str(config_info['DEFAULT']['DLL'])
+
+stop_threads = True
+
 # PROTECTED REGION END #    //  ThorlabsC.additionnal_import
 
 __all__ = ["ThorlabsC", "main"]
@@ -51,6 +67,8 @@ class ThorlabsC(Device):
     """
     # PROTECTED REGION ID(ThorlabsC.class_variable) ENABLED START #
     my_thread = None
+    CAM = None
+    sdk =  TLCameraSDK()
     # PROTECTED REGION END #    //  ThorlabsC.class_variable
 
     # -----------------
@@ -88,7 +106,7 @@ class ThorlabsC(Device):
 
     Image = attribute(
         dtype=(('DevUShort',),),
-        max_dim_x=1400, max_dim_y=1400,
+        max_dim_x=1440, max_dim_y=1080,
     )
 
     # ---------------
@@ -103,6 +121,28 @@ class ThorlabsC(Device):
         self._r_oi = (0,)
         self._image = ((0,),)
         # PROTECTED REGION ID(ThorlabsC.init_device) ENABLED START #
+        self.info_stream("\r Try to start the Thorlabs Driver \r")
+        try:
+            available_cameras = self.sdk.discover_available_cameras()
+            self.CAM = self.sdk.open_camera(str(self.CameraID)) 
+            self.CAM.exposure_time_us = 1100  # set exposure to 1.1 ms
+            self.CAM.frames_per_trigger_zero_for_unlimited = 0  # start camera in continuous mode
+            self.CAM.image_poll_timeout_ms = 500  # 1 second polling timeout
+            #old_roi = CAMS.roi  # store the current roi
+            self.CAM.arm(2)
+            self.set_status("Thorlabs CAMS Driver is ON")
+            self.set_state(DevState.ON)
+        except:
+            self.info_stream("The camera "+str(self.CameraID))
+            try:
+                available_cameras = self.sdk.discover_available_cameras()
+            except:
+                available_cameras = None
+            self.info_stream("Camera detected: ")
+            for i in available_cameras:
+                self.info_stream(i)
+
+        
         # PROTECTED REGION END #    //  ThorlabsC.init_device
 
     def always_executed_hook(self):
@@ -118,6 +158,7 @@ class ThorlabsC(Device):
         destructor and by the device Init command.
         """
         # PROTECTED REGION ID(ThorlabsC.delete_device) ENABLED START #
+        self.CAM.disarm()
         # PROTECTED REGION END #    //  ThorlabsC.delete_device
 
     # ------------------
@@ -177,8 +218,10 @@ class ThorlabsC(Device):
         global stop_threads               
         stop_threads = False
         self.my_thread = Thread(target = self.get_image)
+        
+        self.set_state(DevState.RUNNING)
         self.my_thread.start()
-        self.set_state(DevState.ON)
+        # self.set_state(DevState.ON)
         
         return ""
         # PROTECTED REGION END #    //  ThorlabsC.StartAcqusition
@@ -214,7 +257,11 @@ class ThorlabsC(Device):
         """
         global stop_threads               
         stop_threads = True
-        self.my_thread.join()
+        try:
+            self.my_thread.join()
+            self.set_state(DevState.ON)
+        except:
+            print("Cloud not join the theard maybe none exist.")
         # self.set_state(DevState.OFF)
 
         pass
@@ -229,6 +276,11 @@ class ThorlabsC(Device):
         Takes a image and send it to the user
         :rtype: PyTango.DevVoid
         """
+        global stop_threads
+        if stop_threads:
+            self.get_image()
+        else:
+            print("It is on the Acqusition mode")
         pass
         # PROTECTED REGION END #    //  ThorlabsC.Snap
 
@@ -239,7 +291,24 @@ class ThorlabsC(Device):
 # PROTECTED REGION ID(ThorlabsC.custom_code) ENABLED START #
     def get_image(self):
         while True:
-            self._image = np.random.randint(1000, size=(100, 100))
+            # self._image = np.random.randint(1000, size=(100, 100))
+            NUM_FRAMES = 1  # adjust to the desired number of frames     
+
+            self.CAM.issue_software_trigger()
+
+            for i in range(NUM_FRAMES):
+                frame = self.CAM.get_pending_frame_or_null()
+                if frame is not None:
+                    # print("frame #{} received!".format(frame.frame_count))
+
+                    frame.image_buffer  # .../ perform operations using the data from image_buffer
+
+                    #  NOTE: frame.image_buffer is a temporary memory buffer that may be overwritten during the next call
+                    #        to get_pending_frame_or_null. The following line makes a deep copy of the image data:
+                    # image_buffer_copy = np.copy(frame.image_buffer)
+                    self._image = np.array(frame.image_buffer,dtype = np.uint16)
+                else:
+                    print("timeout reached during polling, program exiting...")
             global stop_threads
             if stop_threads:
                 break
