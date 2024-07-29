@@ -1,442 +1,260 @@
-'''
-Cameras: 
-    Set-up gain                                             Done
-    Set-up the exposure time                                Done
-    Acquire a frame                                         Done
-    Set binning                                             ????
-    Set ROI                                                 Done
+# -*- coding: utf-8 -*-
+#
+# This file is part of the ThorlabsC project
+#
+#
+#
+# Distributed under the terms of the GPL license.
+# See LICENSE.txt for more info.
 
+"""
+Zelux Thorlabs Camera
 
-'''
+This class is to integrate a Zelux Thorlabs Camera.
+After installing the Server on the jive/astor you will need to use the Wizard tool 
+to difine the proparties of that particular device.
+"""
 
+# PROTECTED REGION ID(ThorlabsC.system_imports) ENABLED START #
+# PROTECTED REGION END #    //  ThorlabsC.system_imports
 
-import pylablib as pll
-from pylablib.devices import Thorlabs
-Thorlabs.list_cameras_tlcam()
-import numpy as np
-import os
-from thorlabs_tsi_sdk.tl_camera import TLCameraSDK, OPERATION_MODE
-import json
-
-import concurrent.futures
-
-import configparser
-
+# PyTango imports
 import tango
-from tango import AttrQuality, AttrWriteType, DevState, DispLevel, AttReqType, Database
-from tango.server import Device, attribute, command
-from tango.server import class_property, device_property
+from tango import DebugIt
+from tango.server import run
+from tango.server import Device
+from tango.server import attribute, command
+from tango.server import device_property
+from tango import AttrQuality, DispLevel, DevState
+from tango import AttrWriteType, PipeWriteType
+# Additional import
+# PROTECTED REGION ID(ThorlabsC.additionnal_import) ENABLED START #
+import numpy as np
+import time
+from threading import Thread
+# PROTECTED REGION END #    //  ThorlabsC.additionnal_import
 
-
-config_info = configparser.ConfigParser()
-config_info.read('setting.ini')
-
-
-pll.par["devices/dlls/thorlabs_tlcam"] = str(config_info['DEFAULT']['DLL'])
+__all__ = ["ThorlabsC", "main"]
 
 
 class ThorlabsC(Device):
-    CAMS = {}
-    Image_Photo_V2_Cam = ""
-    sdk =  TLCameraSDK()
-    my_camera_ready = False
-    DATA_IMAGE =""
-    dataImage = None
+    """
+    This class is to integrate a Zelux Thorlabs Camera.
+    After installing the Server on the jive/astor you will need to use the Wizard tool 
+    to difine the proparties of that particular device.
 
-    host = device_property(dtype=str, default_value="192.168.0.2")
-    port = class_property(dtype=int, default_value=10000)
+    **Properties:**
 
+    - Device Property
+        CameraID
+            - Type:'str'
+    """
+    # PROTECTED REGION ID(ThorlabsC.class_variable) ENABLED START #
+    my_thread = None
+    # PROTECTED REGION END #    //  ThorlabsC.class_variable
+
+    # -----------------
+    # Device Properties
+    # -----------------
+
+    CameraID = device_property(
+        dtype='str',
+        mandatory=True
+    )
+
+    # ----------
+    # Attributes
+    # ----------
+
+    ExposureTime = attribute(
+        dtype='DevUShort',
+        access=AttrWriteType.READ_WRITE,
+        label="Exposure time of the camera",
+        unit="ms",
+        display_unit="ms",
+        doc="Exposure time of the camera  in ms ",
+    )
+
+    Gain = attribute(
+        dtype='DevDouble',
+        access=AttrWriteType.READ_WRITE,
+    )
+
+    ROI = attribute(
+        dtype=('DevUShort',),
+        access=AttrWriteType.READ_WRITE,
+        max_dim_x=4,
+    )
+
+    Image = attribute(
+        dtype=(('DevUShort',),),
+        max_dim_x=1400, max_dim_y=1400,
+    )
+
+    # ---------------
+    # General methods
+    # ---------------
 
     def init_device(self):
-        super().init_device()
-        self.info_stream(f"Connection details: {self.host}:{self.port}")
-        self.set_state(DevState.ON)
-        self.set_status("Thorlabs CAMS Driver is ON, you need to connect a camera")
+        """Initializes the attributes and properties of the ThorlabsC."""
+        Device.init_device(self)
+        self._exposure_time = 0
+        self._gain = 0.0
+        self._r_oi = (0,)
+        self._image = ((0,),)
+        # PROTECTED REGION ID(ThorlabsC.init_device) ENABLED START #
+        # PROTECTED REGION END #    //  ThorlabsC.init_device
 
-    # def init_device_old(self):
-    #     super().init_device()
-    #     self.info_stream(f"Connection details: {self.host}:{self.port}")
-    #     self.set_state(DevState.ON)
-    #     self.info_stream("\r Try to start the Thorlabs Driver \r")
-    #     available_cameras = self.sdk.discover_available_cameras()
-    #     if len(available_cameras) < 1:
-    #         self.info_stream("no cameras detected")
-    #     else:
-    #         self.info_stream("A camera detected")
-    #         self.CAMS = self.sdk.open_camera(available_cameras[0])  
-    #         try:
-    #             # Check if te camera is disarmend
-    #             self.CAMS.disarm()
-    #         except:
-    #             print("All good")
-    #         self.CAMS.exposure_time_us = 1100  # set exposure to 1.1 ms
-    #         self.CAMS.frames_per_trigger_zero_for_unlimited = 0  # start camera in continuous mode
-    #         self.CAMS.image_poll_timeout_ms = 500  # 1 second polling timeout
-    #         #old_roi = CAMS.roi  # store the current roi
-    #         """
-    #         uncomment the line below to set a region of interest (ROI) on the camera
-    #         """
-    #         #camera.roi = (50, 50, 1200, 1000)  # set roi to be at origin point (100, 100) with a width & height of 500
-
-    #         """
-    #         uncomment the lines below to set the gain of the camera and read it back in decibels
-    #         """
-    #         #if camera.gain_range.max > 0:
-    #         #    db_gain = 6.0
-    #         #    gain_index = camera.convert_decibels_to_gain(db_gain)
-    #         #    camera.gain = gain_index
-    #         #    print(f"Set camera gain to {camera.convert_gain_to_decibels(camera.gain)}")
-
-    #         self.CAMS.arm(2)
-    #         self.set_status("Thorlabs CAMS Driver is ON")
+    def always_executed_hook(self):
+        """Method always executed before any TANGO command is executed."""
+        # PROTECTED REGION ID(ThorlabsC.always_executed_hook) ENABLED START #
+        # PROTECTED REGION END #    //  ThorlabsC.always_executed_hook
 
     def delete_device(self):
-        self.CAMS.disarm()
-        return 
+        """Hook to delete resources allocated in init_device.
+
+        This method allows for any memory or other resources allocated in the
+        init_device method to be released.  This method is called by the device
+        destructor and by the device Init command.
+        """
+        # PROTECTED REGION ID(ThorlabsC.delete_device) ENABLED START #
+        # PROTECTED REGION END #    //  ThorlabsC.delete_device
+
+    # ------------------
+    # Attributes methods
+    # ------------------
+
+    def read_ExposureTime(self):
+        # PROTECTED REGION ID(ThorlabsC.ExposureTime_read) ENABLED START #
+        """Return the ExposureTime attribute."""
+        return self._exposure_time
+        # PROTECTED REGION END #    //  ThorlabsC.ExposureTime_read
+    def write_ExposureTime(self, value):
+        # PROTECTED REGION ID(ThorlabsC.ExposureTime_write) ENABLED START #
+        """Set the ExposureTime attribute."""
+        pass
+        # PROTECTED REGION END #    //  ThorlabsC.ExposureTime_write
+    def read_Gain(self):
+        # PROTECTED REGION ID(ThorlabsC.Gain_read) ENABLED START #
+        """Return the Gain attribute."""
+        return self._gain
+        # PROTECTED REGION END #    //  ThorlabsC.Gain_read
+    def write_Gain(self, value):
+        # PROTECTED REGION ID(ThorlabsC.Gain_write) ENABLED START #
+        """Set the Gain attribute."""
+        pass
+        # PROTECTED REGION END #    //  ThorlabsC.Gain_write
+    def read_ROI(self):
+        # PROTECTED REGION ID(ThorlabsC.ROI_read) ENABLED START #
+        """Return the ROI attribute."""
+        return self._r_oi
+        # PROTECTED REGION END #    //  ThorlabsC.ROI_read
+    def write_ROI(self, value):
+        # PROTECTED REGION ID(ThorlabsC.ROI_write) ENABLED START #
+        """Set the ROI attribute."""
+        pass
+        # PROTECTED REGION END #    //  ThorlabsC.ROI_write
+    def read_Image(self):
+        # PROTECTED REGION ID(ThorlabsC.Image_read) ENABLED START #
+        """Return the Image attribute."""
+        return self._image
+        # PROTECTED REGION END #    //  ThorlabsC.Image_read
+    # --------
+    # Commands
+    # --------
 
 
-    Cam_1 = attribute(
-
-        label="Image Thorlabs",
-        dtype=((int,),),
-        max_dim_x=1440,
-        max_dim_y=1440,
-        fget="get_image_1",
+    @command(
+        dtype_out='DevString',
     )
-    
+    @DebugIt()
+    def StartAcqusition(self):
+        # PROTECTED REGION ID(ThorlabsC.StartAcqusition) ENABLED START #
+        """
+        This command start the loop of acquiring a image from the camera
+        :rtype: PyTango.DevString
+        """
+        global stop_threads               
+        stop_threads = False
+        self.my_thread = Thread(target = self.get_image)
+        self.my_thread.start()
+        self.set_state(DevState.ON)
+        
+        return ""
+        # PROTECTED REGION END #    //  ThorlabsC.StartAcqusition
 
-    Cam_2 = attribute(
-        label="Image Thorlabs",
-        dtype=((int,),),
-        #data_format = tango.AttrDataFormat.IMAGE,
-        max_dim_x=1440,
-        max_dim_y=1440,
-        fget="get_image_2",
+    @command(
+        dtype_in='DevString',
+        doc_in="A JSON converted in to a string with the following structure",
     )
+    @DebugIt()
+    def ChangeParameters(self, argin):
+        # PROTECTED REGION ID(ThorlabsC.ChangeParameters) ENABLED START #
+        """
+            This command allows the user to change multiple parameters of the camera at the same time such as:
+            Exposure Time
+            ROI
+            Gain
+        :param argin: A JSON converted in to a string with the following structure
+        :type argin: PyTango.DevString
 
+        :rtype: PyTango.DevVoid
+        """
+        pass
+        # PROTECTED REGION END #    //  ThorlabsC.ChangeParameters
 
-    Cam_3 = attribute(
-        label="Image Thorlabs",
-        dtype=((int,),),
-        #data_format = tango.AttrDataFormat.IMAGE,
-        max_dim_x=1440,
-        max_dim_y=1440,
-        fget="get_image_3",
+    @command(
     )
+    @DebugIt()
+    def StopAcqusition(self):
+        # PROTECTED REGION ID(ThorlabsC.StopAcqusition) ENABLED START #
+        """
+        Stops the loop that takes images
+        :rtype: PyTango.DevVoid
+        """
+        global stop_threads               
+        stop_threads = True
+        self.my_thread.join()
+        # self.set_state(DevState.OFF)
 
-    Cam_4 = attribute(
-        label="Image Thorlabs",
-        dtype=((int,),),
-        #data_format = tango.AttrDataFormat.IMAGE,
-        max_dim_x=1440,
-        max_dim_y=1440,
-        fget="get_image_4",
+        pass
+        # PROTECTED REGION END #    //  ThorlabsC.StopAcqusition
+
+    @command(
     )
+    @DebugIt()
+    def Snap(self):
+        # PROTECTED REGION ID(ThorlabsC.Snap) ENABLED START #
+        """
+        Takes a image and send it to the user
+        :rtype: PyTango.DevVoid
+        """
+        pass
+        # PROTECTED REGION END #    //  ThorlabsC.Snap
 
+# ----------
+# Run server
+# ----------
 
-
-    # def get_image(self):
-    #     NUM_FRAMES = 1  # adjust to the desired number of frames     
-
-    #     self.CAMS.issue_software_trigger()
-
-
-    #     for i in range(NUM_FRAMES):
-    #         frame = self.CAMS.get_pending_frame_or_null()
-    #         if frame is not None:
-    #             #print("frame #{} received!".format(frame.frame_count))
-
-    #             frame.image_buffer  # .../ perform operations using the data from image_buffer
-
-    #             #  NOTE: frame.image_buffer is a temporary memory buffer that may be overwritten during the next call
-    #             #        to get_pending_frame_or_null. The following line makes a deep copy of the image data:
-    #             # image_buffer_copy = np.copy(frame.image_buffer)
-    #             image_buffer_copy = np.array(frame.image_buffer,dtype = np.uint8)
-    #         else:
-    #             print("timeout reached during polling, program exiting...")
-    #             break
-    #     #print(image_buffer_copy.shape)
-    #     return image_buffer_copy
-    
-
-    def get_image_1(self):
-        NUM_FRAMES = 1  # adjust to the desired number of frames     
-
-        self.CAMS["Cam_1"]["Serial"].issue_software_trigger()
-
-        for i in range(NUM_FRAMES):
-            frame = self.CAMS["Cam_1"]["Serial"].get_pending_frame_or_null()
-            if frame is not None:
-                #print("frame #{} received!".format(frame.frame_count))
-
-                frame.image_buffer  # .../ perform operations using the data from image_buffer
-
-                #  NOTE: frame.image_buffer is a temporary memory buffer that may be overwritten during the next call
-                #        to get_pending_frame_or_null. The following line makes a deep copy of the image data:
-                # image_buffer_copy = np.copy(frame.image_buffer)
-                image_buffer_copy = np.array(frame.image_buffer,dtype = np.uint8)
-            else:
-                print("timeout reached during polling, program exiting...")
+# PROTECTED REGION ID(ThorlabsC.custom_code) ENABLED START #
+    def get_image(self):
+        while True:
+            self._image = np.random.randint(1000, size=(100, 100))
+            global stop_threads
+            if stop_threads:
                 break
-        #print(image_buffer_copy.shape)
-        return image_buffer_copy
-    
-    def get_image_2(self):
-        NUM_FRAMES = 1  # adjust to the desired number of frames     
-
-        self.CAMS["Cam_2"]["Serial"].issue_software_trigger()
-
-        for i in range(NUM_FRAMES):
-            frame = self.CAMS["Cam_2"]["Serial"].get_pending_frame_or_null()
-            if frame is not None:
-                #print("frame #{} received!".format(frame.frame_count))
-
-                frame.image_buffer  # .../ perform operations using the data from image_buffer
-
-                #  NOTE: frame.image_buffer is a temporary memory buffer that may be overwritten during the next call
-                #        to get_pending_frame_or_null. The following line makes a deep copy of the image data:
-                # image_buffer_copy = np.copy(frame.image_buffer)
-                image_buffer_copy = np.array(frame.image_buffer,dtype = np.uint8)
-            else:
-                print("timeout reached during polling, program exiting...")
-                break
-        #print(image_buffer_copy.shape)
-        return image_buffer_copy
-
-    
-
-    def get_image_3(self):
-        NUM_FRAMES = 1  # adjust to the desired number of frames     
-
-        self.CAMS["Cam_3"]["Serial"].issue_software_trigger()
-
-        for i in range(NUM_FRAMES):
-            frame = self.CAMS["Cam_3"]["Serial"].get_pending_frame_or_null()
-            if frame is not None:
-                #print("frame #{} received!".format(frame.frame_count))
-
-                frame.image_buffer  # .../ perform operations using the data from image_buffer
-
-                #  NOTE: frame.image_buffer is a temporary memory buffer that may be overwritten during the next call
-                #        to get_pending_frame_or_null. The following line makes a deep copy of the image data:
-                # image_buffer_copy = np.copy(frame.image_buffer)
-                image_buffer_copy = np.array(frame.image_buffer,dtype = np.uint8)
-            else:
-                print("timeout reached during polling, program exiting...")
-                break
-        #print(image_buffer_copy.shape)
-        return image_buffer_copy
-    
-    def get_image_4(self):
-        NUM_FRAMES = 1  # adjust to the desired number of frames     
-
-        self.CAMS["Cam_4"]["Serial"].issue_software_trigger()
-
-        for i in range(NUM_FRAMES):
-            frame = self.CAMS["Cam_4"]["Serial"].get_pending_frame_or_null()
-            if frame is not None:
-                #print("frame #{} received!".format(frame.frame_count))
-
-                frame.image_buffer  # .../ perform operations using the data from image_buffer
-
-                #  NOTE: frame.image_buffer is a temporary memory buffer that may be overwritten during the next call
-                #        to get_pending_frame_or_null. The following line makes a deep copy of the image data:
-                # image_buffer_copy = np.copy(frame.image_buffer)
-                image_buffer_copy = np.array(frame.image_buffer,dtype = np.uint8)
-            else:
-                print("timeout reached during polling, program exiting...")
-                break
-        #print(image_buffer_copy.shape)
-        return image_buffer_copy    
-
-    
-
-    def get_image_select_cam(self,Cam):
-        NUM_FRAMES = 1  # adjust to the desired number of frames     
-
-        self.CAMS[Cam]["Serial"].issue_software_trigger()
-
-        for i in range(NUM_FRAMES):
-            frame = self.CAMS[Cam]["Serial"].get_pending_frame_or_null()
-            if frame is not None:
-                #print("frame #{} received!".format(frame.frame_count))
-
-                frame.image_buffer  # .../ perform operations using the data from image_buffer
-
-                #  NOTE: frame.image_buffer is a temporary memory buffer that may be overwritten during the next call
-                #        to get_pending_frame_or_null. The following line makes a deep copy of the image data:
-                # image_buffer_copy = np.copy(frame.image_buffer)
-                image_buffer_copy = np.array(frame.image_buffer,dtype = np.uint8)
-            else:
-                print("timeout reached during polling, program exiting...")
-                break
-        #print(image_buffer_copy.shape)
-    
-        return image_buffer_copy
-
-    @command(dtype_out=str)
-    def ListCameras(self):
-        available_cameras = self.sdk.discover_available_cameras()
-        print_cam = ""
-        if len(available_cameras) < 1:
-            return "no cameras detected"
-        else:
-            for i in available_cameras:
-                print_cam += i
-
-                print_cam += ", "
-            return print_cam[0:-2]
-        
+# PROTECTED REGION END #    //  ThorlabsC.custom_code
 
 
-    # The user will pass a string that is going to be converted to a JSON 
-    # with the Camera that they want to connect and the name they want to call it.
-    # It is also possible to send the expousure time, etc if none give it is set with deafault valeus.
-    @command(dtype_in=str,dtype_out=str)  
-    def ConnectCamera(self,infoCamera):
-        # print(infoCamera)
-        Info =  json.loads(infoCamera)
-        print(Info)
-        available_cameras = self.sdk.discover_available_cameras()
-        if len(available_cameras) < 1:
-            self.info_stream("no cameras detected")
-            return "no cameras detected"
-        else:
-            if Info["Cam"] in available_cameras:
-                if "Attribute" in Info.keys():
-                    self.info_stream("A camera detected")
-                    self.CAMS[Info["Attribute"]] = {'Serial': self.sdk.open_camera(Info["Cam"])}
-                    try:
-                        # Check if te camera is disarmend
-                        self.CAMS.disarm()
-                    except:
-                        print("All good")
-                    if "exposure_us" in Info.keys():
-                        self.CAMS[Info["Attribute"]]["Serial"].exposure_time_us = Info["exposure_us"]  # set exposure to 1.1 ms
-                    else:
-                        self.CAMS[Info["Attribute"]]["Serial"].exposure_time_us = 1100  # set exposure to 1.1 ms
-                    if "frames_per_trigger" in Info.keys():
-                        self.CAMS[Info["Attribute"]]["Serial"].frames_per_trigger_zero_for_unlimited = Info["frames_per_trigger"]  # start camera in continuous mode
-                    else:
-                        self.CAMS[Info["Attribute"]]["Serial"].frames_per_trigger_zero_for_unlimited = 0  # start camera in continuous mode
-                       
-                    if "poll_timeout_ms" in Info.keys():  
-                        self.CAMS[Info["Attribute"]]["Serial"].image_poll_timeout_ms = Info["poll_timeout_ms"]  # 1 second polling timeout
-                    else:
-                        self.CAMS[Info["Attribute"]]["Serial"].image_poll_timeout_ms = 500  # 1 second polling timeout
-                        # old_roi = CAMS.roi  # store the current roi
-                    self.CAMS[Info["Attribute"]["Serial"]].arm(2)
+def main(args=None, **kwargs):
+    """Main function of the ThorlabsC module."""
+    # PROTECTED REGION ID(ThorlabsC.main) ENABLED START #
+    return run((ThorlabsC,), args=args, **kwargs)
+    # PROTECTED REGION END #    //  ThorlabsC.main
 
-                    
-                elif "CamName" in Info.keys():
-                    self.info_stream("A camera detected")
-                    self.CAMS[Info["CamName"]] ={'Serial': self.sdk.open_camera(Info["Cam"])}
-                    try:
-                        # Check if te camera is disarmend
-                        self.CAMS[Info["CamName"]]["Serial"].disarm()
-                    except:
-                        print("All good")
-                    
-                    if "exposure_us" in Info.keys():  
-                        self.CAMS[Info["CamName"]]["Serial"].exposure_time_us = Info["exposure_us"]  
-                    else:
-                        self.CAMS[Info["CamName"]]["Serial"].exposure_time_us = 1100  # set exposure to 1.1 ms
-                    if "frames_per_trigger" in Info.keys():
-                        self.CAMS[Info["CamName"]]["Serial"].frames_per_trigger_zero_for_unlimited = Info["frames_per_trigger"]  # start camera in continuous mode
-                    else:
-                        self.CAMS[Info["CamName"]]["Serial"].frames_per_trigger_zero_for_unlimited = 0  # start camera in continuous mode
-                    
-                    if "poll_timeout_ms" in Info.keys():  
-                        self.CAMS[Info["CamName"]]["Serial"].image_poll_timeout_ms = Info["poll_timeout_ms"]  # 1 second polling timeout
-                    else:
-                        self.CAMS[Info["CamName"]]["Serial"].image_poll_timeout_ms = 500  # 1 second polling timeout
-                    
-                        # old_roi = CAMS.roi  # store the current roi
-                    self.CAMS[Info["CamName"]]["Serial"].arm(2)
-                else:
-                    return "The JSON sent those not contain the key 'Attribute' or 'CamName' "
-        return "Camera test"
-    
+# PROTECTED REGION ID(ThorlabsC.custom_functions) ENABLED START #
+# PROTECTED REGION END #    //  ThorlabsC.custom_functions
 
 
-
-    @command(dtype_in=str, dtype_out=str)
-    def SetRoi(self,ROI):
-        ROI =  json.loads(ROI)
-        self.CAMS[ROI["CamName"]]["Serial"].disarm()
-        self.CAMS[ROI["CamName"]]["Serial"].roi = (int(ROI["upper_left_x_pixels"]), int(ROI['upper_left_y_pixels']), int(ROI['lower_right_x_pixels']),int( ROI['lower_right_y_pixels']))
-        self.CAMS[ROI["CamName"]]["Serial"].arm(2)
-        string_out = str(ROI["upper_left_x_pixels"])+", "+str(ROI['upper_left_y_pixels'])+", "+str(ROI['lower_right_x_pixels'])+", "+str(ROI['lower_right_y_pixels'])
-        return "CAMS "+ ROI["CamName"]+" was set roi to "+ string_out+"\n"
-    
-
-
-    @command(dtype_in=str, dtype_out=str)
-    def SetGain(self,gain):
-        gain =  json.loads(gain)
-        if self.CAMS[gain["CamName"]]["Serial"].gain_range.max > 0:
-            # db_gain = 6.0
-            gain_index = self.CAMS[gain["CamName"]]["Serial"].convert_decibels_to_gain(gain["gain"])
-            self.CAMS[gain["CamName"]]["Serial"].gain = gain_index
-
-        return f"Set camera gain to {self.CAMS[gain["CamName"]]["Serial"].convert_gain_to_decibels(self.CAMS[gain["CamName"]]["Serial"].gain)}"
-
-
-    @command(dtype_in=str, dtype_out=str)
-    def SetExposureTimeUS(self,parameter):
-        parameter = json.loads(parameter)
-        self.CAMS[parameter["CamName"]]["Serial"].exposure_time_us = parameter["exposure_time_us"]  # set exposure to 1.1 ms
-        return "CAMS "+ " was set exposure time "+ str(parameter["exposure_time_us"]) +" us\n"
-            
-    @command(dtype_in=str, dtype_out=str)      
-    def SetFramesPerTriggerZeroForUnlimited(self,continuousMode):
-        continuousMode = json.loads(continuousMode)
-        self.CAMS[continuousMode["CamName"]]["Serial"].frames_per_trigger_zero_for_unlimited = continuousMode["continuousMode"]  # start camera in continuous mode
-        return "CAMS "+ " was set frames per trigger zero or unlimited "+ str(continuousMode["continuousMode"]) +"\n"
-        
-    @command(dtype_in=str, dtype_out=str)       
-    def SetImagePollTimeoutMS(self,imagePollTimeout):
-        imagePollTimeout = json.loads(imagePollTimeout)
-        self.CAMS[imagePollTimeout["CamName"]]["Serial"].image_poll_timeout_ms = imagePollTimeout["imagePollTimeout"]  # 1 second polling timeout
-        return "CAMS "+ " was set image poll timeout "+ str(imagePollTimeout["imagePollTimeout"]) +" ms\n"
-
-
-
-    @command(dtype_in=str, dtype_out=str)    
-    def GetPhotoJSON(self,Cam):
-        if Cam in self.CAMS:
-            send_JSON = {"Image":self.get_image_select_cam(Cam).tolist()}
-            
-            return json.dumps(send_JSON)
-        else:
-            return "No Camera with the name: " + Cam
-    
-    @command(dtype_in=str, dtype_out=str)    
-    def DisconnectCam(self,Cam):
-        if Cam in self.CAMS:
-            self.CAMS[Cam]["Serial"].disarm()
-            return Cam + " was disconnected."
-        else:
-            return "No Camera with the name: " + Cam
-
-
-        
-    @command(dtype_in=str, dtype_out=str)    
-    def TakePhoto(self,Cam):
-        if Cam in self.CAMS:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                self.dataImage = executor.submit(self.get_image_select_cam, Cam)
-            return "Taking photo Wait the exposure time before calling the GetData function"
-        else:
-            return "No Camera with the name: " + Cam
-        
-    @command(dtype_in=str, dtype_out=str)    
-    def GetDataPhoto(self,Cam):
-        if Cam in self.CAMS:
-            data = self.dataImage.result()
-            send_JSON ={"Image":data.tolist()}
-            return json.dumps(send_JSON)
-        else:
-            return "No Camera with the name: " + Cam
-if __name__ == "__main__":
-    ThorlabsC.run_server()
+if __name__ == '__main__':
+    main()
