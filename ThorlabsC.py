@@ -122,25 +122,15 @@ class ThorlabsC(Device):
         self._image = ((0,),)
         # PROTECTED REGION ID(ThorlabsC.init_device) ENABLED START #
         self.info_stream("\r Try to start the Thorlabs Driver \r")
-        try:
-            available_cameras = self.sdk.discover_available_cameras()
-            self.CAM = self.sdk.open_camera(str(self.CameraID)) 
-            self.CAM.exposure_time_us = 1100  # set exposure to 1.1 ms
-            self.CAM.frames_per_trigger_zero_for_unlimited = 0  # start camera in continuous mode
-            self.CAM.image_poll_timeout_ms = 500  # 1 second polling timeout
-            #old_roi = CAMS.roi  # store the current roi
-            self.CAM.arm(2)
-            self.set_status("Thorlabs CAMS Driver is ON")
-            self.set_state(DevState.ON)
-        except:
-            self.info_stream("The camera "+str(self.CameraID))
-            try:
-                available_cameras = self.sdk.discover_available_cameras()
-            except:
-                available_cameras = None
-            self.info_stream("Camera detected: ")
-            for i in available_cameras:
-                self.info_stream(i)
+        print(self.CameraID)
+        available_cameras = self.sdk.discover_available_cameras()
+        if len(available_cameras) > 1:
+            self.ConnectCamera()
+        else:
+            msg = "No Camera connected!!"
+            self.info_stream(msg)
+            print(msg)
+            self.set_state(DevState.FAULT)
 
         
         # PROTECTED REGION END #    //  ThorlabsC.init_device
@@ -312,6 +302,27 @@ class ThorlabsC(Device):
             global stop_threads
             if stop_threads:
                 break
+
+
+    def ConnectCamera(self):
+        try:
+            self.CAM = self.sdk.open_camera(str(self.CameraID)) 
+            self.CAM.exposure_time_us = 1100  # set exposure to 1.1 ms
+            self.CAM.frames_per_trigger_zero_for_unlimited = 0  # start camera in continuous mode
+            self.CAM.image_poll_timeout_ms = 500  # 1 second polling timeout
+            #old_roi = CAMS.roi  # store the current roi
+            self.CAM.arm(2)
+            self.set_status("Thorlabs CAMS Driver is ON")
+            self.set_state(DevState.ON)
+        except:
+            self.info_stream("The camera "+str(self.CameraID))
+            try:
+                available_cameras = self.sdk.discover_available_cameras()
+            except:
+                available_cameras = None
+            self.info_stream("Camera detected: ")
+            for i in available_cameras:
+                self.info_stream(i)
 # PROTECTED REGION END #    //  ThorlabsC.custom_code
 
 

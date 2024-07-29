@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ASCII"?>
 <pogoDsl:PogoSystem xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pogoDsl="http://tango.org/pogo/PogoDsl">
   <classes name="ThorlabsC" pogoRevision="9.9">
-    <description description="This class is to integrate a Zelux Thorlabs Camera.&#xA;After installing the Server on the jive/astor you will need to use the Wizard tool &#xA;to difine the proparties of that particular device." title="Zelux Thorlabs Camera" sourcePath="C:\Users\User\Desktop\Golpe_Voxel\Tango_Thorlabs" language="PythonHL" filestogenerate="XMI   file,Code files,Protected Regions,html Pages" license="GPL" copyright="" hasMandatoryProperty="true" hasConcreteProperty="true" hasAbstractCommand="false" hasAbstractAttribute="false" descriptionHtmlExists="false">
+    <description description="This class is to integrate a Zelux Thorlabs Camera.&#xA;After installing the Server on the jive/astor you will need to use the Wizard tool &#xA;to difine the proparties of that particular device." title="Zelux Thorlabs Camera" sourcePath="C:\Users\User\Desktop\Golpe_Voxel\Tango_Thorlabs" language="PythonHL" filestogenerate="XMI   file,Code files,Protected Regions" license="GPL" copyright="" hasMandatoryProperty="true" hasConcreteProperty="true" hasAbstractCommand="false" hasAbstractAttribute="false">
       <inheritances classname="Device_Impl" sourcePath=""/>
       <identification contact="at tecnico.ulisboa.pt - pedro.rossa" author="pedro.rossa" emailDomain="tecnico.ulisboa.pt" classFamily="MeasureInstruments" siteSpecific="" platform="Windows" bus="USB" manufacturer="none" reference=""/>
     </description>
@@ -99,6 +99,9 @@
       <status abstract="false" inherited="false" concrete="true" concreteHere="true"/>
     </states>
     <states name="RUNNING" description="Taking photo">
+      <status abstract="false" inherited="false" concrete="true" concreteHere="true"/>
+    </states>
+    <states name="FAULT" description="Missing Camera">
       <status abstract="false" inherited="false" concrete="true" concreteHere="true"/>
     </states>
     <preferences docHome="./doc_html" makefileHome="$(TANGO_HOME)"/>
