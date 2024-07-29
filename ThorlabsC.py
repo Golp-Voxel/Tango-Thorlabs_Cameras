@@ -15,9 +15,10 @@ from pylablib.devices import Thorlabs
 Thorlabs.list_cameras_tlcam()
 import numpy as np
 import os
-import cv2
 from thorlabs_tsi_sdk.tl_camera import TLCameraSDK, OPERATION_MODE
 import json
+
+import concurrent.futures
 
 import configparser
 
@@ -39,8 +40,10 @@ class ThorlabsC(Device):
     Image_Photo_V2_Cam = ""
     sdk =  TLCameraSDK()
     my_camera_ready = False
+    DATA_IMAGE =""
+    dataImage = None
 
-    host = device_property(dtype=str, default_value="localhost")
+    host = device_property(dtype=str, default_value="192.168.0.2")
     port = class_property(dtype=int, default_value=10000)
 
 
@@ -50,42 +53,42 @@ class ThorlabsC(Device):
         self.set_state(DevState.ON)
         self.set_status("Thorlabs CAMS Driver is ON, you need to connect a camera")
 
-    def init_device_old(self):
-        super().init_device()
-        self.info_stream(f"Connection details: {self.host}:{self.port}")
-        self.set_state(DevState.ON)
-        self.info_stream("\r Try to start the Thorlabs Driver \r")
-        available_cameras = self.sdk.discover_available_cameras()
-        if len(available_cameras) < 1:
-            self.info_stream("no cameras detected")
-        else:
-            self.info_stream("A camera detected")
-            self.CAMS = self.sdk.open_camera(available_cameras[0])  
-            try:
-                # Check if te camera is disarmend
-                self.CAMS.disarm()
-            except:
-                print("All good")
-            self.CAMS.exposure_time_us = 1100  # set exposure to 1.1 ms
-            self.CAMS.frames_per_trigger_zero_for_unlimited = 0  # start camera in continuous mode
-            self.CAMS.image_poll_timeout_ms = 500  # 1 second polling timeout
-            #old_roi = CAMS.roi  # store the current roi
-            """
-            uncomment the line below to set a region of interest (ROI) on the camera
-            """
-            #camera.roi = (50, 50, 1200, 1000)  # set roi to be at origin point (100, 100) with a width & height of 500
+    # def init_device_old(self):
+    #     super().init_device()
+    #     self.info_stream(f"Connection details: {self.host}:{self.port}")
+    #     self.set_state(DevState.ON)
+    #     self.info_stream("\r Try to start the Thorlabs Driver \r")
+    #     available_cameras = self.sdk.discover_available_cameras()
+    #     if len(available_cameras) < 1:
+    #         self.info_stream("no cameras detected")
+    #     else:
+    #         self.info_stream("A camera detected")
+    #         self.CAMS = self.sdk.open_camera(available_cameras[0])  
+    #         try:
+    #             # Check if te camera is disarmend
+    #             self.CAMS.disarm()
+    #         except:
+    #             print("All good")
+    #         self.CAMS.exposure_time_us = 1100  # set exposure to 1.1 ms
+    #         self.CAMS.frames_per_trigger_zero_for_unlimited = 0  # start camera in continuous mode
+    #         self.CAMS.image_poll_timeout_ms = 500  # 1 second polling timeout
+    #         #old_roi = CAMS.roi  # store the current roi
+    #         """
+    #         uncomment the line below to set a region of interest (ROI) on the camera
+    #         """
+    #         #camera.roi = (50, 50, 1200, 1000)  # set roi to be at origin point (100, 100) with a width & height of 500
 
-            """
-            uncomment the lines below to set the gain of the camera and read it back in decibels
-            """
-            #if camera.gain_range.max > 0:
-            #    db_gain = 6.0
-            #    gain_index = camera.convert_decibels_to_gain(db_gain)
-            #    camera.gain = gain_index
-            #    print(f"Set camera gain to {camera.convert_gain_to_decibels(camera.gain)}")
+    #         """
+    #         uncomment the lines below to set the gain of the camera and read it back in decibels
+    #         """
+    #         #if camera.gain_range.max > 0:
+    #         #    db_gain = 6.0
+    #         #    gain_index = camera.convert_decibels_to_gain(db_gain)
+    #         #    camera.gain = gain_index
+    #         #    print(f"Set camera gain to {camera.convert_gain_to_decibels(camera.gain)}")
 
-            self.CAMS.arm(2)
-            self.set_status("Thorlabs CAMS Driver is ON")
+    #         self.CAMS.arm(2)
+    #         self.set_status("Thorlabs CAMS Driver is ON")
 
     def delete_device(self):
         self.CAMS.disarm()
@@ -268,6 +271,7 @@ class ThorlabsC(Device):
                 print("timeout reached during polling, program exiting...")
                 break
         #print(image_buffer_copy.shape)
+    
         return image_buffer_copy
 
     @command(dtype_out=str)
@@ -417,5 +421,22 @@ class ThorlabsC(Device):
 
 
         
+    @command(dtype_in=str, dtype_out=str)    
+    def TakePhoto(self,Cam):
+        if Cam in self.CAMS:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                self.dataImage = executor.submit(self.get_image_select_cam, Cam)
+            return "Taking photo Wait the exposure time before calling the GetData function"
+        else:
+            return "No Camera with the name: " + Cam
+        
+    @command(dtype_in=str, dtype_out=str)    
+    def GetDataPhoto(self,Cam):
+        if Cam in self.CAMS:
+            data = self.dataImage.result()
+            send_JSON ={"Image":data.tolist()}
+            return json.dumps(send_JSON)
+        else:
+            return "No Camera with the name: " + Cam
 if __name__ == "__main__":
     ThorlabsC.run_server()
