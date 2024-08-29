@@ -98,6 +98,11 @@ class ThorlabsC(Device):
         access=AttrWriteType.READ_WRITE,
     )
 
+    FramesTrigger = attribute(
+        dtype='DevUShort',
+        access=AttrWriteType.READ_WRITE,
+    )
+
     ROI = attribute(
         dtype=('DevUShort',),
         access=AttrWriteType.READ_WRITE,
@@ -118,13 +123,15 @@ class ThorlabsC(Device):
         Device.init_device(self)
         self._exposure_time = 0
         self._gain = 0.0
+        self._frames_trigger = 0
         self._r_oi = (0,)
         self._image = ((0,),)
         # PROTECTED REGION ID(ThorlabsC.init_device) ENABLED START #
         self.info_stream("\r Try to start the Thorlabs Driver \r")
         print(self.CameraID)
         available_cameras = self.sdk.discover_available_cameras()
-        if len(available_cameras) > 1:
+        print(self.CameraID in available_cameras)
+        if len(available_cameras) > 0 and self.CameraID in available_cameras:
             self.ConnectCamera()
         else:
             msg = "No Camera connected!!"
@@ -163,6 +170,7 @@ class ThorlabsC(Device):
     def write_ExposureTime(self, value):
         # PROTECTED REGION ID(ThorlabsC.ExposureTime_write) ENABLED START #
         """Set the ExposureTime attribute."""
+        self.CAM.exposure_time_us = value  
         pass
         # PROTECTED REGION END #    //  ThorlabsC.ExposureTime_write
     def read_Gain(self):
@@ -173,8 +181,22 @@ class ThorlabsC(Device):
     def write_Gain(self, value):
         # PROTECTED REGION ID(ThorlabsC.Gain_write) ENABLED START #
         """Set the Gain attribute."""
+        if self.CAM.gain_range.max > 0:
+            gain_index = self.CAM.convert_decibels_to_gain(value)
+            self.CAM.gain = gain_index
         pass
         # PROTECTED REGION END #    //  ThorlabsC.Gain_write
+    def read_FramesTrigger(self):
+        # PROTECTED REGION ID(ThorlabsC.FramesTrigger_read) ENABLED START #
+        """Return the FramesTrigger attribute."""
+        return self._frames_trigger
+        # PROTECTED REGION END #    //  ThorlabsC.FramesTrigger_read
+    def write_FramesTrigger(self, value):
+        # PROTECTED REGION ID(ThorlabsC.FramesTrigger_write) ENABLED START #
+        """Set the FramesTrigger attribute."""
+        self.CAM.frames_per_trigger_zero_for_unlimited = value
+        pass
+        # PROTECTED REGION END #    //  ThorlabsC.FramesTrigger_write
     def read_ROI(self):
         # PROTECTED REGION ID(ThorlabsC.ROI_read) ENABLED START #
         """Return the ROI attribute."""
@@ -183,6 +205,9 @@ class ThorlabsC(Device):
     def write_ROI(self, value):
         # PROTECTED REGION ID(ThorlabsC.ROI_write) ENABLED START #
         """Set the ROI attribute."""
+        self.CAM.disarm()
+        self.CAM.roi = (int(value[0]), int(value[1]), int(value[2]),int(value[3]))
+        self.CAM.arm(2)
         pass
         # PROTECTED REGION END #    //  ThorlabsC.ROI_write
     def read_Image(self):
@@ -280,11 +305,13 @@ class ThorlabsC(Device):
 
 # PROTECTED REGION ID(ThorlabsC.custom_code) ENABLED START #
     def get_image(self):
+        frist_time = True
         while True:
             # self._image = np.random.randint(1000, size=(100, 100))
             NUM_FRAMES = 1  # adjust to the desired number of frames     
-
-            self.CAM.issue_software_trigger()
+            if frist_time:
+                self.CAM.issue_software_trigger()
+                frist_time = False
 
             for i in range(NUM_FRAMES):
                 frame = self.CAM.get_pending_frame_or_null()
@@ -307,9 +334,14 @@ class ThorlabsC(Device):
     def ConnectCamera(self):
         try:
             self.CAM = self.sdk.open_camera(str(self.CameraID)) 
-            self.CAM.exposure_time_us = 1100  # set exposure to 1.1 ms
+            self.CAM.exposure_time_us = 11000  # set exposure to 1.1 ms
             self.CAM.frames_per_trigger_zero_for_unlimited = 0  # start camera in continuous mode
-            self.CAM.image_poll_timeout_ms = 500  # 1 second polling timeout
+            self.CAM.image_poll_timeout_ms = 1000  # 1 second polling timeout~
+            
+            """ Test this """
+            # self.CAM.frame_rate_control_value = 10
+            # self.CAM.is_frame_rate_control_enabled = True
+            
             #old_roi = CAMS.roi  # store the current roi
             self.CAM.arm(2)
             self.set_status("Thorlabs CAMS Driver is ON")
