@@ -85,12 +85,12 @@ class ThorlabsC(Device):
     # ----------
 
     ExposureTime = attribute(
-        dtype='DevUShort',
+        dtype='DevULong64',
         access=AttrWriteType.READ_WRITE,
         label="Exposure time of the camera",
         unit="ms",
         display_unit="ms",
-        doc="Exposure time of the camera  in ms ",
+        doc="Exposure time of the camera  in ms",
     )
 
     Gain = attribute(
@@ -99,12 +99,12 @@ class ThorlabsC(Device):
     )
 
     FramesTrigger = attribute(
-        dtype='DevUShort',
+        dtype='DevULong64',
         access=AttrWriteType.READ_WRITE,
     )
 
     ROI = attribute(
-        dtype=('DevUShort',),
+        dtype=('DevULong64',),
         access=AttrWriteType.READ_WRITE,
         max_dim_x=4,
     )

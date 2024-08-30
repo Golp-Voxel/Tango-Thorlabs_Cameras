@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ASCII"?>
 <pogoDsl:PogoSystem xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pogoDsl="http://tango.org/pogo/PogoDsl">
   <classes name="ThorlabsC" pogoRevision="9.9">
-    <description description="This class is to integrate a Zelux Thorlabs Camera.&#xA;After installing the Server on the jive/astor you will need to use the Wizard tool &#xA;to difine the proparties of that particular device." title="Zelux Thorlabs Camera" sourcePath="C:\Users\User\Desktop\Golpe_Voxel\Tango_Thorlabs" language="PythonHL" filestogenerate="XMI   file,Code files,Protected Regions" license="GPL" copyright="" hasMandatoryProperty="true" hasConcreteProperty="true" hasAbstractCommand="false" hasAbstractAttribute="false">
+    <description description="This class is to integrate a Zelux Thorlabs Camera.&#xA;After installing the Server on the jive/astor you will need to use the Wizard tool &#xA;to difine the proparties of that particular device." title="Zelux Thorlabs Camera" sourcePath="C:\Users\Voxel\Desktop\Tango_Device\Tango_Thorlabs" language="PythonHL" filestogenerate="XMI   file,Code files,Protected Regions" license="GPL" copyright="" hasMandatoryProperty="true" hasConcreteProperty="true" hasAbstractCommand="false" hasAbstractAttribute="false">
       <inheritances classname="Device_Impl" sourcePath=""/>
       <identification contact="at tecnico.ulisboa.pt - pedro.rossa" author="pedro.rossa" emailDomain="tecnico.ulisboa.pt" classFamily="MeasureInstruments" siteSpecific="" platform="Windows" bus="USB" manufacturer="none" reference=""/>
     </description>
@@ -64,12 +64,12 @@
       <status abstract="false" inherited="false" concrete="true" concreteHere="true"/>
     </commands>
     <attributes name="ExposureTime" attType="Scalar" rwType="READ_WRITE" displayLevel="OPERATOR" polledPeriod="0" maxX="" maxY="" allocReadMember="true" isDynamic="false">
-      <dataType xsi:type="pogoDsl:UShortType"/>
+      <dataType xsi:type="pogoDsl:ULongType"/>
       <changeEvent fire="false" libCheckCriteria="false"/>
       <archiveEvent fire="false" libCheckCriteria="false"/>
       <dataReadyEvent fire="false" libCheckCriteria="true"/>
       <status abstract="false" inherited="false" concrete="true" concreteHere="true"/>
-      <properties description="Exposure time of the camera  in ms " label="Exposure time of the camera" unit="ms" standardUnit="" displayUnit="ms" format="" maxValue="" minValue="" maxAlarm="" minAlarm="" maxWarning="" minWarning="" deltaTime="" deltaValue=""/>
+      <properties description="Exposure time of the camera  in ms" label="Exposure time of the camera" unit="ms" standardUnit="" displayUnit="ms" format="" maxValue="" minValue="" maxAlarm="" minAlarm="" maxWarning="" minWarning="" deltaTime="" deltaValue=""/>
     </attributes>
     <attributes name="Gain" attType="Scalar" rwType="READ_WRITE" displayLevel="OPERATOR" polledPeriod="0" maxX="" maxY="" allocReadMember="true" isDynamic="false">
       <dataType xsi:type="pogoDsl:DoubleType"/>
@@ -80,7 +80,7 @@
       <properties description="" label="" unit="" standardUnit="" displayUnit="" format="" maxValue="" minValue="" maxAlarm="" minAlarm="" maxWarning="" minWarning="" deltaTime="" deltaValue=""/>
     </attributes>
     <attributes name="FramesTrigger" attType="Scalar" rwType="READ_WRITE" displayLevel="OPERATOR" polledPeriod="0" maxX="" maxY="" allocReadMember="true" isDynamic="false">
-      <dataType xsi:type="pogoDsl:UShortType"/>
+      <dataType xsi:type="pogoDsl:ULongType"/>
       <changeEvent fire="false" libCheckCriteria="false"/>
       <archiveEvent fire="false" libCheckCriteria="false"/>
       <dataReadyEvent fire="false" libCheckCriteria="true"/>
@@ -88,7 +88,7 @@
       <properties description="" label="" unit="" standardUnit="" displayUnit="" format="" maxValue="" minValue="" maxAlarm="" minAlarm="" maxWarning="" minWarning="" deltaTime="" deltaValue=""/>
     </attributes>
     <attributes name="ROI" attType="Spectrum" rwType="READ_WRITE" displayLevel="OPERATOR" polledPeriod="0" maxX="4" maxY="" allocReadMember="true" isDynamic="false">
-      <dataType xsi:type="pogoDsl:UShortType"/>
+      <dataType xsi:type="pogoDsl:ULongType"/>
       <changeEvent fire="false" libCheckCriteria="false"/>
       <archiveEvent fire="false" libCheckCriteria="false"/>
       <dataReadyEvent fire="false" libCheckCriteria="true"/>
