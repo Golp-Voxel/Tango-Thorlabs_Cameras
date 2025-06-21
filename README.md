@@ -17,6 +17,7 @@ After activating it you can install all the models to run this tool by using the
 ```
 pip install -r Requirements.txt
 ```
+**NOTE**: this `Requirements.txt` was made in a python 3.12.2 setup.
 
 To complete the installation, it is necessary to copy the `ThorlabsC.bat` template and change the paths to the installation folder. And the command to activate the env created `tango-env\Scripts\activate`.
 
