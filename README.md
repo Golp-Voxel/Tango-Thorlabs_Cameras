@@ -18,7 +18,13 @@ After activating it you can install all the models to run this tool by using the
 pip install -r Requirements.txt
 ```
 
-To complete the installation, it is necessary to copy the `ThorlabsC.bat` template and change the paths to the installation folder. And the command to run the `tango-env\Scripts\activate` script. 
+To complete the installation, it is necessary to copy the `ThorlabsC.bat` template and change the paths to the installation folder. And the command to activate the env created `tango-env\Scripts\activate`.
+
+Also you need to dowload the `thoirlabs_tsi_sdk` folder from [here](https://www.thorlabs.com/software/THO/ThorCam/Programming/Scientific_Camera_Interfaces_Windows-2.1.zip) you will find a zip named `thorlabs_tsi_camera_python_sdk_package` in the folder `Scientific Camera Interfaces\SDK\Python Toolkit` inside that zip you will find the folder `thoirlabs_tsi_sdk` move it to the root of the repo.
+
+For the `Native_64_lib` you must copy the `setting.ini.temp` and remove the `.temp`. In that `ini` is where you can specify where is your `Native_64_lib` this can be extrated from the same zip above in the `Scientific Camera Interfaces\SDK\Native Toolkit\dlls` you could copy the folder `Native_64_lib` to the root of the clone. Other option is finding where your `ThorCams` is and pasting the path to it, normaly you can find it in `C:\Program Files\Thorlabs\Scientific Imaging\ThorCam`.
+ Just remember to change the `\` to `//`.
+
 
 Then copy the `setting.ini` template and fill in the path to the dlls for the Thorlabs.
 
