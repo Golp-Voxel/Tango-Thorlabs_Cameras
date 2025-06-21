@@ -5,3 +5,4 @@
 /thorlabs_tsi_sdk
 ThorlabsC.bat
 setting.ini
+*.code-workspace

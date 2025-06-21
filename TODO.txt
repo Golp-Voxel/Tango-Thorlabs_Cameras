@@ -1,3 +1,3 @@
 After the clone you must download the dll from thorlabs web site: https://www.thorlabs.com/software_pages/ViewSoftwarePage.cfm?Code=ThorCam
 
-1 - add the possibility to select the camera to be used
+There is a error on the DLL need to explore
